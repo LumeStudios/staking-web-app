@@ -252,7 +252,7 @@ const connectWallet = async function () {
               infoId.classList.add('rarity_item-text');
               infoCollection.innerText = '55Unity';
               infoRarity.innerText = info.score;
-              infoRank.innerText = info.rank;
+              infoRank.innerText = '-';
               infoId.innerText = tokenIds[i];
               earningsItemStatusButtonHq.innerText = 'HQ';
               earningsItemStatusButtonMission.innerText = 'Mission';
