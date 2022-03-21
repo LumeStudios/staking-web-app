@@ -126,6 +126,7 @@ const balanceOf = async (accounts) => {
 };
 
 const fillInfo = async (accounts) => {
+  console.log(accounts);
   connectedTo.innerText =
     'CONNECTED TO: ' +
     accounts.substring(0, 5) +
@@ -158,7 +159,7 @@ const fillInfo = async (accounts) => {
       tokenIds = tokenIds.map((x) => parseInt(x));
       totalNftsOfUserSpan.innerText = '(' + tokenIds.length + ')';
 
-      getStake(accounts[0], PROJECT_ID).then((response) => {
+      getStake(accounts, PROJECT_ID).then((response) => {
         const { tokens } = response.data;
         tokenStake = tokens;
         tokenStake.sort();
