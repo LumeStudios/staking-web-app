@@ -439,3 +439,5 @@ const checkUserIsConnected = async () => {
     console.log(error);
   }
 };
+
+checkUserIsConnected();
