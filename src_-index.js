@@ -433,7 +433,7 @@ const checkUserIsConnected = async () => {
     const accounts = await web3.eth.getAccounts();
 
     if (accounts.length > 0) {
-      await createUser(accounts[0]);
+      await createUser(accounts[0], PROJECT_ID);
 
       await fillInfo(accounts[0]);
     }
