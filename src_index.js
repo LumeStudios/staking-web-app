@@ -87,7 +87,7 @@ const createUser = async (address, projectId) => {
 
 const getTokensFromDb = async (tokensId) => {
   try {
-    const response = await axios.post(
+    const response = await axios.get(
       'https://seamore.55unity.com/assets/get-infos',
       { tokensId }
     );
