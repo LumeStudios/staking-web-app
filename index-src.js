@@ -125,6 +125,193 @@ const balanceOf = async (accounts) => {
     .catch((error) => console.log(error));
 };
 
+const fillInfo = async (accounts) => {
+  connectedTo.innerText =
+    'CONNECTED TO: ' +
+    accounts.substring(0, 5) +
+    '...' +
+    accounts.substring(accounts.length - 4, accounts.length);
+  connectedTo.classList.remove('is-hidden');
+  connectButton.classList.add('is-hidden');
+  navTopBar.classList.remove('is-hidden');
+  navTopBarWrapper.classList.add('is-hidden');
+
+  balanceOf(accounts);
+
+  getTotalClaimable(accounts);
+
+  contractToken.methods
+    .lastUpdate(accounts)
+    .call()
+    .then((info) => {
+      if (+info === 0) {
+        claimButton.classList.add('is-disabled');
+      }
+    });
+
+  contract55.methods
+    .walletOfOwner(accounts)
+    .call()
+    .then((tokens) => {
+      saveChangesButton.classList.remove('is-hidden');
+      let tokenIds = tokens;
+      tokenIds = tokenIds.map((x) => parseInt(x));
+      totalNftsOfUserSpan.innerText = '(' + tokenIds.length + ')';
+
+      getStake(accounts[0], PROJECT_ID).then((response) => {
+        const { tokens } = response.data;
+        tokenStake = tokens;
+        tokenStake.sort();
+        totalNftsOfUser.innerText = tokens.length;
+        dailyWield.innerText = (tokens.length * 0.27369863013).toFixed(3);
+      });
+
+      getTokensFromDb(tokens).then((response) => {
+        const { data } = response;
+        data.forEach((info, i) => {
+          nftLayout.classList.remove('is-hidden');
+          const rarityItemContentWrapper = document.createElement('div');
+          const rarityItemContent = document.createElement('div');
+          const rarityItemMainContentWrapper = document.createElement('div');
+          const rarityItemMainContentLayoutLeft = document.createElement('div');
+          const rarityItemMainContentLayoutRight =
+            document.createElement('div');
+          const rarityItemInfoWrapperCollection = document.createElement('div');
+          const rarityItemInfoWrapperRarity = document.createElement('div');
+          const rarityItemInfoWrapperId = document.createElement('div');
+          const rarityItemInfoWrapperRank = document.createElement('div');
+          const earningsItemStatusWrapper = document.createElement('div');
+          const earningsItemStatusButtonHq = document.createElement('div');
+          const earningsItemStatusButtonMission = document.createElement('div');
+          earningsItemStatusButtonHq.classList.add(
+            'earnings_item-status-button'
+          );
+          earningsItemStatusButtonMission.classList.add(
+            'earnings_item-status-button'
+          );
+          earningsItemStatusButtonMission.classList.add('is-selected');
+          earningsItemStatusWrapper.classList.add(
+            'earnings_item-status-wrapper'
+          );
+          rarityItemContentWrapper.classList.add('rarity_item-content-wrapper');
+          rarityItemContent.classList.add('rarity_item-content');
+          rarityItemMainContentWrapper.classList.add(
+            'rarity_item-main-content-wrapper'
+          );
+          rarityItemMainContentLayoutLeft.classList.add(
+            'rarity_item-main-content-layout'
+          );
+          rarityItemMainContentLayoutRight.classList.add(
+            'rarity_item-main-content-layout'
+          );
+          rarityItemInfoWrapperCollection.classList.add(
+            'rarity_item-info-wrapper'
+          );
+          rarityItemInfoWrapperRarity.classList.add('rarity_item-info-wrapper');
+          rarityItemInfoWrapperId.classList.add('rarity_item-info-wrapper');
+          rarityItemInfoWrapperRank.classList.add('rarity_item-info-wrapper');
+          const labelCollection = document.createElement('div');
+          const labelId = document.createElement('div');
+          const labelRarity = document.createElement('div');
+          const labelRank = document.createElement('div');
+          labelCollection.classList.add('rarity_item-label');
+          labelRarity.classList.add('rarity_item-label');
+          labelRank.classList.add('rarity_item-label');
+          labelId.classList.add('rarity_item-label');
+          labelCollection.innerText = 'Collection';
+          labelRarity.innerText = 'Rarity Score';
+          labelRank.innerText = 'Rank';
+          labelId.innerText = 'ID';
+          const infoCollection = document.createElement('div');
+          const infoId = document.createElement('div');
+          const infoRarity = document.createElement('div');
+          const infoRank = document.createElement('div');
+          infoCollection.classList.add('rarity_item-text');
+          infoRarity.classList.add('rarity_item-text');
+          infoRank.classList.add('rarity_item-text');
+          infoId.classList.add('rarity_item-text');
+          infoCollection.innerText = '55Unity';
+          infoRarity.innerText = info.score;
+          infoRank.innerText = info.rank;
+          infoId.innerText = tokenIds[i];
+          earningsItemStatusButtonHq.innerText = 'HQ';
+          earningsItemStatusButtonMission.innerText = 'Mission';
+          earningsItemStatusWrapper.appendChild(earningsItemStatusButtonHq);
+          earningsItemStatusWrapper.appendChild(
+            earningsItemStatusButtonMission
+          );
+          rarityItemInfoWrapperCollection.appendChild(labelCollection);
+          rarityItemInfoWrapperCollection.appendChild(infoCollection);
+          rarityItemInfoWrapperRarity.appendChild(labelRarity);
+          rarityItemInfoWrapperRarity.appendChild(infoRarity);
+          rarityItemMainContentLayoutLeft.appendChild(
+            rarityItemInfoWrapperCollection
+          );
+          rarityItemMainContentLayoutLeft.appendChild(
+            rarityItemInfoWrapperRarity
+          );
+          rarityItemInfoWrapperId.appendChild(labelId);
+          rarityItemInfoWrapperId.appendChild(infoId);
+          rarityItemInfoWrapperRank.appendChild(labelRank);
+          rarityItemInfoWrapperRank.appendChild(infoRank);
+          rarityItemMainContentLayoutRight.appendChild(rarityItemInfoWrapperId);
+          rarityItemMainContentLayoutRight.appendChild(
+            rarityItemInfoWrapperRank
+          );
+          rarityItemMainContentWrapper.appendChild(
+            rarityItemMainContentLayoutLeft
+          );
+          rarityItemMainContentWrapper.appendChild(
+            rarityItemMainContentLayoutRight
+          );
+          rarityItemContent.appendChild(rarityItemMainContentWrapper);
+          rarityItemContentWrapper.appendChild(rarityItemContent);
+          rarityItemContentWrapper.appendChild(earningsItemStatusWrapper);
+          const elementImage = document.createElement('img');
+          elementImage.setAttribute('src', info.imageUrl);
+          elementImage.classList.add('rarity_item-image');
+          const newNftCard = document.createElement('div');
+          newNftCard.classList.add('owned-nfts_item-component');
+          newNftCard.appendChild(elementImage);
+          newNftCard.appendChild(rarityItemContentWrapper);
+          nftLayout.appendChild(newNftCard);
+        });
+
+        const buttons = Array.from(
+          document.getElementsByClassName('earnings_item-status-button')
+        );
+
+        buttons.forEach((button, i) => {
+          let index = Math.floor(i / 2);
+          if (
+            tokenStake.includes(tokenIds[index]) &&
+            button.innerText === 'HQ'
+          ) {
+            button.classList.add('is-selected');
+            buttons[i + 1].classList.remove('is-selected');
+          }
+
+          button.onclick = () => {
+            if (button.innerText === 'HQ') {
+              if (!tokenStake.includes(tokenIds[index])) {
+                tokenStake.push(tokenIds[index]);
+              }
+              button.classList.add('is-selected');
+              buttons[i + 1].classList.remove('is-selected');
+            } else {
+              let filteredtokenStake = tokenStake.filter(
+                (id) => tokenIds[index] !== id
+              );
+              tokenStake = filteredtokenStake;
+              button.classList.add('is-selected');
+              buttons[i - 1].classList.remove('is-selected');
+            }
+          };
+        });
+      });
+    });
+};
+
 let balance = 0;
 let sumToClaim = 0;
 
@@ -136,202 +323,7 @@ const connectWallet = async function () {
     if (accounts.length > 0) {
       await createUser(accounts[0], PROJECT_ID);
 
-      connectedTo.innerText =
-        'CONNECTED TO: ' +
-        accounts[0].substring(0, 5) +
-        '...' +
-        accounts[0].substring(accounts[0].length - 4, accounts[0].length);
-      connectedTo.classList.remove('is-hidden');
-      connectButton.classList.add('is-hidden');
-      navTopBar.classList.remove('is-hidden');
-      navTopBarWrapper.classList.add('is-hidden');
-
-      balanceOf(accounts[0]);
-
-      getTotalClaimable(accounts[0]);
-
-      contractToken.methods
-        .lastUpdate(accounts[0])
-        .call()
-        .then((info) => {
-          if (+info === 0) {
-            claimButton.classList.add('is-disabled');
-          }
-        });
-
-      contract55.methods
-        .walletOfOwner(accounts[0])
-        .call()
-        .then((tokens) => {
-          saveChangesButton.classList.remove('is-hidden');
-          let tokenIds = tokens;
-          tokenIds = tokenIds.map((x) => parseInt(x));
-          totalNftsOfUserSpan.innerText = '(' + tokenIds.length + ')';
-
-          getStake(accounts[0], PROJECT_ID).then((response) => {
-            const { tokens } = response.data;
-            tokenStake = tokens;
-            tokenStake.sort();
-            totalNftsOfUser.innerText = tokens.length;
-            dailyWield.innerText = (tokens.length * 0.27369863013).toFixed(3);
-          });
-
-          getTokensFromDb(tokens).then((response) => {
-            const { data } = response;
-            data.forEach((info, i) => {
-              nftLayout.classList.remove('is-hidden');
-              const rarityItemContentWrapper = document.createElement('div');
-              const rarityItemContent = document.createElement('div');
-              const rarityItemMainContentWrapper =
-                document.createElement('div');
-              const rarityItemMainContentLayoutLeft =
-                document.createElement('div');
-              const rarityItemMainContentLayoutRight =
-                document.createElement('div');
-              const rarityItemInfoWrapperCollection =
-                document.createElement('div');
-              const rarityItemInfoWrapperRarity = document.createElement('div');
-              const rarityItemInfoWrapperId = document.createElement('div');
-              const rarityItemInfoWrapperRank = document.createElement('div');
-              const earningsItemStatusWrapper = document.createElement('div');
-              const earningsItemStatusButtonHq = document.createElement('div');
-              const earningsItemStatusButtonMission =
-                document.createElement('div');
-              earningsItemStatusButtonHq.classList.add(
-                'earnings_item-status-button'
-              );
-              earningsItemStatusButtonMission.classList.add(
-                'earnings_item-status-button'
-              );
-              earningsItemStatusButtonMission.classList.add('is-selected');
-              earningsItemStatusWrapper.classList.add(
-                'earnings_item-status-wrapper'
-              );
-              rarityItemContentWrapper.classList.add(
-                'rarity_item-content-wrapper'
-              );
-              rarityItemContent.classList.add('rarity_item-content');
-              rarityItemMainContentWrapper.classList.add(
-                'rarity_item-main-content-wrapper'
-              );
-              rarityItemMainContentLayoutLeft.classList.add(
-                'rarity_item-main-content-layout'
-              );
-              rarityItemMainContentLayoutRight.classList.add(
-                'rarity_item-main-content-layout'
-              );
-              rarityItemInfoWrapperCollection.classList.add(
-                'rarity_item-info-wrapper'
-              );
-              rarityItemInfoWrapperRarity.classList.add(
-                'rarity_item-info-wrapper'
-              );
-              rarityItemInfoWrapperId.classList.add('rarity_item-info-wrapper');
-              rarityItemInfoWrapperRank.classList.add(
-                'rarity_item-info-wrapper'
-              );
-              const labelCollection = document.createElement('div');
-              const labelId = document.createElement('div');
-              const labelRarity = document.createElement('div');
-              const labelRank = document.createElement('div');
-              labelCollection.classList.add('rarity_item-label');
-              labelRarity.classList.add('rarity_item-label');
-              labelRank.classList.add('rarity_item-label');
-              labelId.classList.add('rarity_item-label');
-              labelCollection.innerText = 'Collection';
-              labelRarity.innerText = 'Rarity Score';
-              labelRank.innerText = 'Rank';
-              labelId.innerText = 'ID';
-              const infoCollection = document.createElement('div');
-              const infoId = document.createElement('div');
-              const infoRarity = document.createElement('div');
-              const infoRank = document.createElement('div');
-              infoCollection.classList.add('rarity_item-text');
-              infoRarity.classList.add('rarity_item-text');
-              infoRank.classList.add('rarity_item-text');
-              infoId.classList.add('rarity_item-text');
-              infoCollection.innerText = '55Unity';
-              infoRarity.innerText = info.score;
-              infoRank.innerText = info.rank;
-              infoId.innerText = tokenIds[i];
-              earningsItemStatusButtonHq.innerText = 'HQ';
-              earningsItemStatusButtonMission.innerText = 'Mission';
-              earningsItemStatusWrapper.appendChild(earningsItemStatusButtonHq);
-              earningsItemStatusWrapper.appendChild(
-                earningsItemStatusButtonMission
-              );
-              rarityItemInfoWrapperCollection.appendChild(labelCollection);
-              rarityItemInfoWrapperCollection.appendChild(infoCollection);
-              rarityItemInfoWrapperRarity.appendChild(labelRarity);
-              rarityItemInfoWrapperRarity.appendChild(infoRarity);
-              rarityItemMainContentLayoutLeft.appendChild(
-                rarityItemInfoWrapperCollection
-              );
-              rarityItemMainContentLayoutLeft.appendChild(
-                rarityItemInfoWrapperRarity
-              );
-              rarityItemInfoWrapperId.appendChild(labelId);
-              rarityItemInfoWrapperId.appendChild(infoId);
-              rarityItemInfoWrapperRank.appendChild(labelRank);
-              rarityItemInfoWrapperRank.appendChild(infoRank);
-              rarityItemMainContentLayoutRight.appendChild(
-                rarityItemInfoWrapperId
-              );
-              rarityItemMainContentLayoutRight.appendChild(
-                rarityItemInfoWrapperRank
-              );
-              rarityItemMainContentWrapper.appendChild(
-                rarityItemMainContentLayoutLeft
-              );
-              rarityItemMainContentWrapper.appendChild(
-                rarityItemMainContentLayoutRight
-              );
-              rarityItemContent.appendChild(rarityItemMainContentWrapper);
-              rarityItemContentWrapper.appendChild(rarityItemContent);
-              rarityItemContentWrapper.appendChild(earningsItemStatusWrapper);
-              const elementImage = document.createElement('img');
-              elementImage.setAttribute('src', info.imageUrl);
-              elementImage.classList.add('rarity_item-image');
-              const newNftCard = document.createElement('div');
-              newNftCard.classList.add('owned-nfts_item-component');
-              newNftCard.appendChild(elementImage);
-              newNftCard.appendChild(rarityItemContentWrapper);
-              nftLayout.appendChild(newNftCard);
-            });
-
-            const buttons = Array.from(
-              document.getElementsByClassName('earnings_item-status-button')
-            );
-
-            buttons.forEach((button, i) => {
-              let index = Math.floor(i / 2);
-              if (
-                tokenStake.includes(tokenIds[index]) &&
-                button.innerText === 'HQ'
-              ) {
-                button.classList.add('is-selected');
-                buttons[i + 1].classList.remove('is-selected');
-              }
-
-              button.onclick = () => {
-                if (button.innerText === 'HQ') {
-                  if (!tokenStake.includes(tokenIds[index])) {
-                    tokenStake.push(tokenIds[index]);
-                  }
-                  button.classList.add('is-selected');
-                  buttons[i + 1].classList.remove('is-selected');
-                } else {
-                  let filteredtokenStake = tokenStake.filter(
-                    (id) => tokenIds[index] !== id
-                  );
-                  tokenStake = filteredtokenStake;
-                  button.classList.add('is-selected');
-                  buttons[i - 1].classList.remove('is-selected');
-                }
-              };
-            });
-          });
-        });
+      await fillInfo(accounts[0]);
     }
   } catch (error) {
     console.log(error);
@@ -436,4 +428,14 @@ function handleAccountChanged(_account) {
   }
 }
 
+const checkUserIsConnected = async () => {
+  try {
+    const accounts = await web3.eth.getAccounts();
 
+    if (accounts.length > 0) {
+      await fillInfo(accounts[0]);
+    }
+  } catch (error) {
+    console.log(error);
+  }
+};
