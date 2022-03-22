@@ -370,8 +370,6 @@ const saveChanges = async function () {
       to: CONTRACT_ADDRESS_TOKEN,
     })
     .then((response) => {
-      saveChangesButton.classList.remove('is-hidden');
-      loadingState[0].classList.add('is-hidden');
       setStake(accounts[0], PROJECT_ID, tokenStake)
         .then((response) => {
           getTotalClaimable(accounts[0]);
@@ -384,6 +382,8 @@ const saveChanges = async function () {
             tokenStake.sort();
             totalNftsOfUser.innerText = tokens.length;
             dailyWield.innerText = (tokens.length * 0.27369863013).toFixed(3);
+            saveChangesButton.classList.remove('is-hidden');
+            loadingState[0].classList.add('is-hidden');
           });
         })
         .catch((error) => {
