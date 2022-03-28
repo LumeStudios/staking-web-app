@@ -1,9 +1,14 @@
 const web3 = new Web3(Web3.givenProvider);
 
+console.log('funcionando esquema novo');
+
 const CHAIN_ID = '0x1';
 const CONTRACT_ADDRESS_TOKEN = '0xFBB3c73779Ef59F0C4A2e662F9A42A82a145e638';
 const CONTRACT_ADDRESS_55 = '0xD8723058f2B456484E3cdE4ccfaeA903116fA9e4';
+//const CONTRACT_ADDRESS_55 = '0x7f8eEAF32FBaDf0D7CD1a5D4cd09e97F51647149';
+//const CONTRACT_ADDRESS_TOKEN = '0x7D2acA960e83dB22bF4Ddd42CDA80375Ba446F41';
 const PROJECT_ID = '62182600ca0013b6790f02e5';
+//const PROJECT_ID = '621571f84dd921759b1c1485';
 
 const connectButton = document.querySelector('.connect-button');
 const connectedTo = document.querySelector('.connected-to');
@@ -30,6 +35,8 @@ const contractToken = new web3.eth.Contract(ABI, CONTRACT_ADDRESS_TOKEN);
 const contract55 = new web3.eth.Contract(ABIunity, CONTRACT_ADDRESS_55);
 
 let tokenStake = [];
+let tokenFromContract = [];
+let stakedBalanceFromUser = 0;
 
 const getStake = async (address, projectId) => {
   try {
@@ -150,14 +157,24 @@ const fillInfo = async (accounts) => {
       }
     });
 
+  contractToken.methods
+    .stakedBalance(accounts)
+    .call()
+    .then((stakedBalance) => {
+      console.log(stakedBalance);
+      stakedBalanceFromUser = stakedBalance;
+      console.log('staked', stakedBalanceFromUser);
+    });
+
   contract55.methods
     .walletOfOwner(accounts)
     .call()
     .then((tokens) => {
       saveChangesButton.classList.remove('is-hidden');
-      let tokenIds = tokens;
-      tokenIds = tokenIds.map((x) => parseInt(x));
-      totalNftsOfUserSpan.innerText = '(' + tokenIds.length + ')';
+      tokenFromContract = tokens;
+      console.log('token from contract', tokenFromContract);
+      tokenFromContract = tokenFromContract.map((x) => parseInt(x));
+      totalNftsOfUserSpan.innerText = '(' + tokenFromContract.length + ')';
 
       getStake(accounts, PROJECT_ID).then((response) => {
         const { tokens } = response.data;
@@ -234,7 +251,7 @@ const fillInfo = async (accounts) => {
           infoCollection.innerText = '55Unity';
           infoRarity.innerText = info.score;
           infoRank.innerText = info.rank;
-          infoId.innerText = tokenIds[i];
+          infoId.innerText = tokenFromContract[i];
           earningsItemStatusButtonHq.innerText = 'HQ';
           earningsItemStatusButtonMission.innerText = 'Mission';
           earningsItemStatusWrapper.appendChild(earningsItemStatusButtonHq);
@@ -285,7 +302,7 @@ const fillInfo = async (accounts) => {
         buttons.forEach((button, i) => {
           let index = Math.floor(i / 2);
           if (
-            tokenStake.includes(tokenIds[index]) &&
+            tokenStake.includes(tokenFromContract[index]) &&
             button.innerText === 'HQ'
           ) {
             button.classList.add('is-selected');
@@ -294,14 +311,14 @@ const fillInfo = async (accounts) => {
 
           button.onclick = () => {
             if (button.innerText === 'HQ') {
-              if (!tokenStake.includes(tokenIds[index])) {
-                tokenStake.push(tokenIds[index]);
+              if (!tokenStake.includes(tokenFromContract[index])) {
+                tokenStake.push(tokenFromContract[index]);
               }
               button.classList.add('is-selected');
               buttons[i + 1].classList.remove('is-selected');
             } else {
               let filteredtokenStake = tokenStake.filter(
-                (id) => tokenIds[index] !== id
+                (id) => tokenFromContract[index] !== id
               );
               tokenStake = filteredtokenStake;
               button.classList.add('is-selected');
@@ -314,6 +331,7 @@ const fillInfo = async (accounts) => {
 };
 
 let balance = 0;
+
 let sumToClaim = 0;
 
 const connectWallet = async function () {
@@ -335,15 +353,13 @@ const claimToken = async function () {
   claimButton.classList.add('is-hidden');
   saveChangesButton.classList.add('is-hidden');
   loadingState[1].classList.remove('is-hidden');
-  const accounts = await ethereum.request({ method: 'eth_accounts' });
 
-  contractToken.methods
-    .claim()
-    .send({
-      from: accounts[0],
-      to: CONTRACT_ADDRESS_TOKEN,
-    })
-    .then((claim) => {
+  try {
+    const accounts = await ethereum.request({ method: 'eth_accounts' });
+    if (accounts.length !== 0) {
+      await contractToken.methods
+        .claim()
+        .send({ from: accounts[0], to: CONTRACT_ADDRESS_TOKEN });
       claimButton.classList.remove('is-hidden');
       loadingState[1].classList.add('is-hidden');
       balance += sumToClaim;
@@ -351,25 +367,90 @@ const claimToken = async function () {
       claimButton.classList.add('is-disabled');
       totalClaimable.innerText = '0 $SURVIVE';
       saveChangesButton.classList.remove('is-hidden');
-    })
-    .catch((error) => {
-      saveChangesButton.classList.remove('is-hidden');
-      claimButton.classList.remove('is-hidden');
-      loadingState[1].classList.add('is-hidden');
-    });
+    }
+  } catch (error) {
+    saveChangesButton.classList.remove('is-hidden');
+    claimButton.classList.remove('is-hidden');
+    loadingState[1].classList.add('is-hidden');
+  }
+
+  // contractToken.methods
+  //   .claim()
+  //   .send({
+  //     from: accounts[0],
+  //     to: CONTRACT_ADDRESS_TOKEN,
+  //   })
+  //   .then((claim) => {
+  //     claimButton.classList.remove('is-hidden');
+  //     loadingState[1].classList.add('is-hidden');
+  //     balance += sumToClaim;
+  //     balanceText.innerText = Number(balance).toFixed(3);
+  //     claimButton.classList.add('is-disabled');
+  //     totalClaimable.innerText = '0 $SURVIVE';
+  //     saveChangesButton.classList.remove('is-hidden');
+  //   })
+  //   .catch((error) => {
+  //     saveChangesButton.classList.remove('is-hidden');
+  //     claimButton.classList.remove('is-hidden');
+  //     loadingState[1].classList.add('is-hidden');
+  //   });
 };
 
 const saveChanges = async function () {
   saveChangesButton.classList.add('is-hidden');
   loadingState[0].classList.remove('is-hidden');
   const accounts = await ethereum.request({ method: 'eth_accounts' });
-  contractToken.methods
-    .stake(tokenStake.length)
-    .send({
-      from: accounts[0],
-      to: CONTRACT_ADDRESS_TOKEN,
-    })
-    .then((response) => {
+  console.log('staked balance', stakedBalanceFromUser);
+  console.log('token stake', tokenStake);
+
+  if (accounts.length !== 0) {
+    if (tokenStake.length !== Number(stakedBalanceFromUser)) {
+      contractToken.methods
+        .stake(tokenStake.length)
+        .send({
+          from: accounts[0],
+          to: CONTRACT_ADDRESS_TOKEN,
+        })
+        .then((response) => {
+          setStake(accounts[0], PROJECT_ID, tokenStake)
+            .then((response) => {
+              getTotalClaimable(accounts[0]);
+
+              balanceOf(accounts[0]);
+
+              contractToken.methods
+                .stakedBalance(accounts[0])
+                .call()
+                .then((stakedBalance) => {
+                  console.log(stakedBalance);
+                  stakedBalanceFromUser = stakedBalance;
+                  console.log('staked', stakedBalanceFromUser);
+                });
+
+              getStake(accounts[0], PROJECT_ID).then((response) => {
+                const { tokens } = response.data;
+                tokenStake = tokens;
+                tokenStake.sort();
+                totalNftsOfUser.innerText = tokens.length;
+                dailyWield.innerText = (tokens.length * 0.27369863013).toFixed(
+                  3
+                );
+                saveChangesButton.classList.remove('is-hidden');
+                loadingState[0].classList.add('is-hidden');
+              });
+            })
+            .catch((error) => {
+              loadingState[0].classList.add('is-hidden');
+              saveChangesButton.classList.remove('is-hidden');
+              console.log(error);
+            });
+        })
+        .catch((error) => {
+          console.log(error);
+          loadingState[0].classList.add('is-hidden');
+          saveChangesButton.classList.remove('is-hidden');
+        });
+    } else {
       setStake(accounts[0], PROJECT_ID, tokenStake)
         .then((response) => {
           getTotalClaimable(accounts[0]);
@@ -391,12 +472,8 @@ const saveChanges = async function () {
           saveChangesButton.classList.remove('is-hidden');
           console.log(error);
         });
-    })
-    .catch((error) => {
-      console.log(error);
-      loadingState[0].classList.add('is-hidden');
-      saveChangesButton.classList.remove('is-hidden');
-    });
+    }
+  }
 };
 
 saveChangesButton.addEventListener('click', saveChanges);

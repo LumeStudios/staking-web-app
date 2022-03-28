@@ -1,0 +1,23 @@
+{
+  "name": "staking-web-app",
+  "version": "1.0.0",
+  "description": "",
+  "main": "ABI.js",
+  "scripts": {
+    "start": "parcel index-_-src.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/LumeStudios/staking-web-app.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/LumeStudios/staking-web-app/issues"
+  },
+  "homepage": "https://github.com/LumeStudios/staking-web-app#readme",
+  "dependencies": {
+    "parcel": "^2.4.0"
+  }
+}
