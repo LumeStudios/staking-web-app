@@ -2,10 +2,10 @@
   "name": "staking-web-app",
   "version": "1.0.0",
   "description": "",
-  "main": "ABI.js",
+  "main": "src/index.ts",
   "scripts": {
-    "start": "parcel index-_-src.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "serve": "webpack-dev-server --mode development --config webpack.dev.js",
+    "build": "webpack --mode production --optimize-dedupe --config webpack.prod.js"
   },
   "repository": {
     "type": "git",
@@ -17,7 +17,37 @@
     "url": "https://github.com/LumeStudios/staking-web-app/issues"
   },
   "homepage": "https://github.com/LumeStudios/staking-web-app#readme",
+  "devDependencies": {
+    "@types/webpack": "^5.28.0",
+    "@typescript-eslint/eslint-plugin": "^5.17.0",
+    "@typescript-eslint/parser": "^5.17.0",
+    "assert": "^2.0.0",
+    "buffer": "^6.0.3",
+    "electron": "^18.0.1",
+    "eslint": "^8.12.0",
+    "eslint-config-prettier": "^8.5.0",
+    "eslint-plugin-import": "^2.25.4",
+    "eslint-plugin-prettier": "^4.0.0",
+    "eslint-plugin-sort-imports-es6-autofix": "^0.6.0",
+    "html-webpack-plugin": "^5.5.0",
+    "https-browserify": "^1.0.0",
+    "os-browserify": "^0.3.0",
+    "path": "^0.12.7",
+    "prettier": "^2.6.1",
+    "process": "^0.11.10",
+    "requirejs": "^2.3.6",
+    "stream-browserify": "^3.0.0",
+    "stream-http": "^3.2.0",
+    "swarm-js": "^0.1.40",
+    "ts-loader": "^9.2.8",
+    "typescript": "^4.6.3",
+    "url": "^0.11.0",
+    "webpack": "^5.70.0",
+    "webpack-cli": "^4.9.2",
+    "webpack-dev-server": "^4.7.4"
+  },
   "dependencies": {
-    "parcel": "^2.4.0"
+    "axios": "^0.26.1",
+    "web3": "^1.7.1"
   }
 }

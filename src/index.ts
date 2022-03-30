@@ -1,114 +1,51 @@
+import { default as Web3 } from "web3"
+import { AbiItem } from 'web3-utils'
+import ABI from './contracts/ABI.json'
+import ABIunity from './contracts/ABI55Unity.json'
+import { getStake } from "./api/get-stake"
+import { setStake } from "./api/set-stake"
+import { getTokensFromDb } from "./api/get-tokens-from-db"
+import { createUser } from "./api/create-user"
+import { Address, TokenFromContract, Tokens, TokensFromDb } from "./types/types"
+
 const web3 = new Web3(Web3.givenProvider);
 
-console.log('funcionando esquema novo');
+const CHAIN_ID = process.env.CHAIN_ID as string
 
-const CHAIN_ID = '0x1';
-const CONTRACT_ADDRESS_TOKEN = '0xFBB3c73779Ef59F0C4A2e662F9A42A82a145e638';
-const CONTRACT_ADDRESS_55 = '0xD8723058f2B456484E3cdE4ccfaeA903116fA9e4';
-//const CONTRACT_ADDRESS_55 = '0x7f8eEAF32FBaDf0D7CD1a5D4cd09e97F51647149';
-//const CONTRACT_ADDRESS_TOKEN = '0x7D2acA960e83dB22bF4Ddd42CDA80375Ba446F41';
-const PROJECT_ID = '62182600ca0013b6790f02e5';
-//const PROJECT_ID = '621571f84dd921759b1c1485';
+console.log(CHAIN_ID)
+const CONTRACT_ADDRESS_TOKEN = process.env.CONTRACT_ADDRESS_TOKEN as string
+const CONTRACT_ADDRESS_55 = process.env.CONTRACT_ADDRESS_55 as string
+const PROJECT_ID = process.env.PROJECT_ID as string
 
-const connectButton = document.querySelector('.connect-button');
-const connectedTo = document.querySelector('.connected-to');
-const balanceWrapper = document.querySelector('.balance-wrapper');
-const balanceText = document.querySelector('.balance-text');
-const totalClaimable = document.querySelector('.earnings_item-claim-text');
-const claimButton = document.querySelector('.claim-button');
-const loadingState = document.getElementsByClassName('loading-animation');
-const totalNftsOfUser = document.querySelector('.total-nfts');
+const connectButton = document.querySelector('.connect-button') as HTMLButtonElement;
+const connectedTo = document.querySelector('.connected-to') as HTMLDivElement;
+const balanceWrapper = document.querySelector('.balance-wrapper') as HTMLDivElement;
+const balanceText = document.querySelector('.balance-text') as HTMLDivElement;
+const totalClaimable = document.querySelector('.earnings_item-claim-text') as HTMLDivElement;
+const claimButton = document.querySelector('.claim-button') as HTMLButtonElement;
+const loadingState = document.getElementsByClassName('loading-animation') as HTMLCollectionOf<HTMLDivElement>;
+const totalNftsOfUser = document.querySelector('.total-nfts') as HTMLDivElement;
 const totalNftsOfUserSpan = document.querySelector(
   '.rarity_low-opacity-text-span'
-);
-const tokenImages = document.getElementsByClassName('rarity_item-image');
-const tokenRarity = document.getElementsByClassName('token-rarity');
-const tokenId = document.getElementsByClassName('token-id');
-const tokenRank = document.getElementsByClassName('token-rank');
-const nftLayout = document.querySelector('.owned-nfts_list-layout');
-const saveChangesButton = document.querySelector('.earnings_select-button');
-const dailyWield = document.querySelector('.daily-wield');
-const navTopBar = document.querySelector('.top-nav_connected-wrapper');
-const navTopBarWrapper = document.querySelector('.top-nav_buttons-wrapper');
+) as HTMLSpanElement;
+const nftLayout = document.querySelector('.owned-nfts_list-layout') as HTMLDivElement;
+const saveChangesButton = document.querySelector('.earnings_select-button') as HTMLButtonElement;
+const dailyWield = document.querySelector('.daily-wield') as HTMLDivElement;
+const navTopBar = document.querySelector('.top-nav_connected-wrapper') as HTMLDivElement;
+const navTopBarWrapper = document.querySelector('.top-nav_buttons-wrapper') as HTMLDivElement;
 
-const contractToken = new web3.eth.Contract(ABI, CONTRACT_ADDRESS_TOKEN);
-const contract55 = new web3.eth.Contract(ABIunity, CONTRACT_ADDRESS_55);
+const contractToken = new web3.eth.Contract(ABI as AbiItem[], CONTRACT_ADDRESS_TOKEN);
+const contract55 = new web3.eth.Contract(ABIunity as AbiItem[], CONTRACT_ADDRESS_55);
 
-let tokenStake = [];
-let tokenFromContract = [];
+let tokenStake: Tokens = [];
+let tokenFromContract: Tokens = [];
 let stakedBalanceFromUser = 0;
 
-const getStake = async (address, projectId) => {
-  try {
-    const response = await axios.get(
-      'https://server.55unity.com/users/get-staked',
-      {
-        params: { address, projectId },
-        headers: {
-          authentication:
-            'a9a5d580243b9ee0ab8377695b573e3aa8877803ac2596067d4b8e4ac8254266',
-        },
-      }
-    );
-    return response;
-  } catch (error) {
-    console.log(error);
-  }
-};
-
-const setStake = async (address, projectId, tokens) => {
-  try {
-    const response = await axios.post(
-      'https://server.55unity.com/users/set-staked',
-      { address, projectId, tokens },
-      {
-        headers: {
-          authentication:
-            'a9a5d580243b9ee0ab8377695b573e3aa8877803ac2596067d4b8e4ac8254266',
-        },
-      }
-    );
-    return response;
-  } catch (error) {
-    console.log(error);
-  }
-};
-
-const createUser = async (address, projectId) => {
-  try {
-    const response = await axios.post(
-      'https://server.55unity.com/users/create',
-      { address, projectId },
-      {
-        headers: {
-          authentication:
-            'a9a5d580243b9ee0ab8377695b573e3aa8877803ac2596067d4b8e4ac8254266',
-        },
-      }
-    );
-    return response;
-  } catch {
-    console.log(error);
-  }
-};
-
-const getTokensFromDb = async (tokensId) => {
-  try {
-    const response = await axios.post(
-      'https://seamore.55unity.com/assets/get-infos',
-      { tokensId }
-    );
-    return response;
-  } catch (error) {
-    console.log(error);
-  }
-};
-
-const getTotalClaimable = async (accounts) => {
+const getTotalClaimable = async (address: Address) => {
   contractToken.methods
-    .getTotalClaimable(accounts)
+    .getTotalClaimable(address)
     .call()
-    .then((total) => {
+    .then((total: string) => {
       if (+total !== 0) {
         claimButton.classList.remove('is-disabled');
       }
@@ -118,75 +55,81 @@ const getTotalClaimable = async (accounts) => {
     });
 };
 
-const balanceOf = async (accounts) => {
+const balanceOf = async (address: Address): Promise<void> => {
   contractToken.methods
-    .balanceOf(accounts)
+    .balanceOf(address)
     .call()
-    .then((userBalance) => {
+    .then((userBalance: string) => {
       balanceText.innerText = Number(
         web3.utils.fromWei(userBalance, 'ether')
       ).toFixed(3);
       balanceWrapper.classList.remove('is-hidden');
       balance = +web3.utils.fromWei(userBalance, 'ether');
     })
-    .catch((error) => console.log(error));
+    .catch((error: Error) => console.log(error));
 };
 
-const fillInfo = async (accounts) => {
-  console.log(accounts);
+const fillInfo = async (address: Address) => {
+  console.log(address);
   connectedTo.innerText =
     'CONNECTED TO: ' +
-    accounts.substring(0, 5) +
+    address.substring(0, 5) +
     '...' +
-    accounts.substring(accounts.length - 4, accounts.length);
+    address.substring(address.length - 4, address.length);
   connectedTo.classList.remove('is-hidden');
   connectButton.classList.add('is-hidden');
   navTopBar.classList.remove('is-hidden');
   navTopBarWrapper.classList.add('is-hidden');
 
-  balanceOf(accounts);
+  balanceOf(address);
 
-  getTotalClaimable(accounts);
+  getTotalClaimable(address);
 
   contractToken.methods
-    .lastUpdate(accounts)
+    .lastUpdate(address)
     .call()
-    .then((info) => {
+    .then((info: string) => {
       if (+info === 0) {
         claimButton.classList.add('is-disabled');
       }
     });
 
   contractToken.methods
-    .stakedBalance(accounts)
+    .stakedBalance(address)
     .call()
-    .then((stakedBalance) => {
+    .then((stakedBalance: number) => {
       console.log(stakedBalance);
       stakedBalanceFromUser = stakedBalance;
       console.log('staked', stakedBalanceFromUser);
     });
 
   contract55.methods
-    .walletOfOwner(accounts)
+    .walletOfOwner(address)
     .call()
-    .then((tokens) => {
+    .then((tokens: TokenFromContract) => {
+      let tokensFromWallet: TokenFromContract = []
       saveChangesButton.classList.remove('is-hidden');
-      tokenFromContract = tokens;
+      tokensFromWallet = tokens
       console.log('token from contract', tokenFromContract);
-      tokenFromContract = tokenFromContract.map((x) => parseInt(x));
+      tokenFromContract = tokensFromWallet.map((x) => parseInt(x));
       totalNftsOfUserSpan.innerText = '(' + tokenFromContract.length + ')';
 
-      getStake(accounts, PROJECT_ID).then((response) => {
-        const { tokens } = response.data;
-        tokenStake = tokens;
-        tokenStake.sort();
-        totalNftsOfUser.innerText = tokens.length;
-        dailyWield.innerText = (tokens.length * 0.27369863013).toFixed(3);
+      getStake(address, PROJECT_ID).then((response) => {
+        if (response) {
+          const { tokens } = response.data
+          tokenStake = tokens;
+          tokenStake.sort();
+          totalNftsOfUser.innerText = String(tokens.length);
+          dailyWield.innerText = (tokens.length * 0.27369863013).toFixed(3);
+        }
+
+
+
       });
 
-      getTokensFromDb(tokens).then((response) => {
-        const { data } = response;
-        data.forEach((info, i) => {
+      getTokensFromDb(tokenFromContract).then((response) => {
+        const tokens = response?.data;
+        tokens?.forEach((info: TokensFromDb, i: number) => {
           nftLayout.classList.remove('is-hidden');
           const rarityItemContentWrapper = document.createElement('div');
           const rarityItemContent = document.createElement('div');
@@ -251,7 +194,7 @@ const fillInfo = async (accounts) => {
           infoCollection.innerText = '55Unity';
           infoRarity.innerText = info.score;
           infoRank.innerText = info.rank;
-          infoId.innerText = tokenFromContract[i];
+          infoId.innerText = String(tokenFromContract[i]);
           earningsItemStatusButtonHq.innerText = 'HQ';
           earningsItemStatusButtonMission.innerText = 'Mission';
           earningsItemStatusWrapper.appendChild(earningsItemStatusButtonHq);
@@ -296,8 +239,7 @@ const fillInfo = async (accounts) => {
         });
 
         const buttons = Array.from(
-          document.getElementsByClassName('earnings_item-status-button')
-        );
+          document.getElementsByClassName('earnings_item-status-button') as HTMLCollectionOf<HTMLButtonElement>)
 
         buttons.forEach((button, i) => {
           let index = Math.floor(i / 2);
@@ -336,7 +278,7 @@ let sumToClaim = 0;
 
 const connectWallet = async function () {
   try {
-    const accounts = await window.ethereum.request({
+    const accounts = await (window as any).ethereum.request({
       method: 'eth_requestAccounts',
     });
     if (accounts.length > 0) {
@@ -355,7 +297,7 @@ const claimToken = async function () {
   loadingState[1].classList.remove('is-hidden');
 
   try {
-    const accounts = await ethereum.request({ method: 'eth_accounts' });
+    const accounts = await (window as any).ethereum.request({ method: 'eth_accounts' });
     if (accounts.length !== 0) {
       await contractToken.methods
         .claim()
@@ -373,33 +315,12 @@ const claimToken = async function () {
     claimButton.classList.remove('is-hidden');
     loadingState[1].classList.add('is-hidden');
   }
-
-  // contractToken.methods
-  //   .claim()
-  //   .send({
-  //     from: accounts[0],
-  //     to: CONTRACT_ADDRESS_TOKEN,
-  //   })
-  //   .then((claim) => {
-  //     claimButton.classList.remove('is-hidden');
-  //     loadingState[1].classList.add('is-hidden');
-  //     balance += sumToClaim;
-  //     balanceText.innerText = Number(balance).toFixed(3);
-  //     claimButton.classList.add('is-disabled');
-  //     totalClaimable.innerText = '0 $SURVIVE';
-  //     saveChangesButton.classList.remove('is-hidden');
-  //   })
-  //   .catch((error) => {
-  //     saveChangesButton.classList.remove('is-hidden');
-  //     claimButton.classList.remove('is-hidden');
-  //     loadingState[1].classList.add('is-hidden');
-  //   });
 };
 
 const saveChanges = async function () {
   saveChangesButton.classList.add('is-hidden');
   loadingState[0].classList.remove('is-hidden');
-  const accounts = await ethereum.request({ method: 'eth_accounts' });
+  const accounts = await (window as any).ethereum.request({ method: 'eth_accounts' });
   console.log('staked balance', stakedBalanceFromUser);
   console.log('token stake', tokenStake);
 
@@ -411,7 +332,7 @@ const saveChanges = async function () {
           from: accounts[0],
           to: CONTRACT_ADDRESS_TOKEN,
         })
-        .then((response) => {
+        .then((response: any) => {
           setStake(accounts[0], PROJECT_ID, tokenStake)
             .then((response) => {
               getTotalClaimable(accounts[0]);
@@ -421,22 +342,25 @@ const saveChanges = async function () {
               contractToken.methods
                 .stakedBalance(accounts[0])
                 .call()
-                .then((stakedBalance) => {
+                .then((stakedBalance: number) => {
                   console.log(stakedBalance);
                   stakedBalanceFromUser = stakedBalance;
                   console.log('staked', stakedBalanceFromUser);
                 });
 
               getStake(accounts[0], PROJECT_ID).then((response) => {
-                const { tokens } = response.data;
-                tokenStake = tokens;
-                tokenStake.sort();
-                totalNftsOfUser.innerText = tokens.length;
-                dailyWield.innerText = (tokens.length * 0.27369863013).toFixed(
-                  3
-                );
-                saveChangesButton.classList.remove('is-hidden');
-                loadingState[0].classList.add('is-hidden');
+                if (response) {
+                  const { tokens } = response.data;
+                  tokenStake = tokens;
+                  tokenStake.sort();
+                  totalNftsOfUser.innerText = String(tokens.length);
+                  dailyWield.innerText = (tokens.length * 0.27369863013).toFixed(
+                    3
+                  );
+                  saveChangesButton.classList.remove('is-hidden');
+                  loadingState[0].classList.add('is-hidden');
+                }
+
               });
             })
             .catch((error) => {
@@ -445,7 +369,7 @@ const saveChanges = async function () {
               console.log(error);
             });
         })
-        .catch((error) => {
+        .catch((error: Error) => {
           console.log(error);
           loadingState[0].classList.add('is-hidden');
           saveChangesButton.classList.remove('is-hidden');
@@ -458,13 +382,16 @@ const saveChanges = async function () {
           balanceOf(accounts[0]);
 
           getStake(accounts[0], PROJECT_ID).then((response) => {
-            const { tokens } = response.data;
-            tokenStake = tokens;
-            tokenStake.sort();
-            totalNftsOfUser.innerText = tokens.length;
-            dailyWield.innerText = (tokens.length * 0.27369863013).toFixed(3);
-            saveChangesButton.classList.remove('is-hidden');
-            loadingState[0].classList.add('is-hidden');
+            if (response) {
+              const { tokens } = response.data
+              tokenStake = tokens
+              tokenStake.sort();
+              totalNftsOfUser.innerText = String(tokens.length);
+              dailyWield.innerText = (tokens.length * 0.27369863013).toFixed(3);
+              saveChangesButton.classList.remove('is-hidden');
+              loadingState[0].classList.add('is-hidden');
+            }
+
           });
         })
         .catch((error) => {
@@ -480,15 +407,15 @@ saveChangesButton.addEventListener('click', saveChanges);
 claimButton.addEventListener('click', claimToken);
 connectButton.addEventListener('click', connectWallet);
 
-if (!window.ethereum) {
+if (!(window as any).ethereum) {
   connectedTo.innerText = 'PLEASE INSTALL METAMASK';
   connectedTo.classList.remove('is-hidden');
   connectButton.classList.add('is-hidden');
 }
 
-ethereum.on('chainChanged', handleChainChanged);
+(window as any).ethereum.on('chainChanged', handleChainChanged);
 
-function handleChainChanged(_chainId) {
+function handleChainChanged(_chainId: string) {
   if (_chainId !== CHAIN_ID) {
     connectButton.classList.add('is-hidden');
     connectedTo.classList.remove('is-hidden');
@@ -498,10 +425,10 @@ function handleChainChanged(_chainId) {
   }
 }
 
-ethereum.on('accountsChanged', handleAccountChanged);
+(window as any).ethereum.on('accountsChanged', handleAccountChanged);
 
-function handleAccountChanged(_account) {
-  if (connectedTo.innerText !== '') {
+function handleAccountChanged(_account: Address) {
+  if (connectedTo?.textContent !== '') {
     window.location.reload();
   }
 }
