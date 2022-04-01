@@ -1,5 +1,5 @@
 import { AxiosResponse } from "axios"
-import { getTokensFromDb } from "../api/get-tokens-from-db";
+import { Contract } from 'web3-eth-contract'
 
 export type Token = number;
 

@@ -36,14 +36,16 @@ const navTopBarWrapper = document.querySelector('.top-nav_buttons-wrapper') as H
 const quantityToxicPower = Array.from(document.getElementsByClassName('quantity_toxic_power') as HTMLCollectionOf<HTMLDivElement>)
 const earningsItemDetailsText = Array.from(document.getElementsByClassName('earnings_item-details-text') as HTMLCollectionOf<HTMLDivElement>)
 const earningsItemDetailsNumber = Array.from(document.getElementsByClassName('earnings_item-details-number') as HTMLCollectionOf<HTMLDivElement>)
-const burnButton = Array.from(document.getElementsByClassName('burn-button') as HTMLCollectionOf<HTMLButtonElement>)
 const noToxicPowerAvailable = document.querySelector('.no-toxic-power__wrapper') as HTMLDivElement
-const earningsItemDetails = document.querySelector('.earnings_item-details') as HTMLDivElement
+const earningsItemDetailsList = Array.from(document.getElementsByClassName('earnings_item-details-list') as HTMLCollectionOf<HTMLDivElement>)
+const earningsItemImage = Array.from(document.getElementsByClassName('earnings_item-details-image') as HTMLCollectionOf<HTMLImageElement>)
+const burnButtonWrapper = document.querySelector('.burn-button__wrapper') as HTMLButtonElement
+
 
 
 const contractToken = new web3.eth.Contract(ABI as AbiItem[], CONTRACT_ADDRESS_TOKEN);
 const contract55 = new web3.eth.Contract(ABIunity as AbiItem[], CONTRACT_ADDRESS_55);
-// const contractToxicPower = new web3.eth.Contract(ABI_TOXIC_POWER as AbiItem[], CONTRACT_ADDRESS_TOXIC_POWER)
+const contractToxicPower = new web3.eth.Contract(ABI_TOXIC_POWER as AbiItem[], CONTRACT_ADDRESS_TOXIC_POWER)
 
 let tokenStake: Tokens = [];
 let tokenFromContract: Tokens = [];
@@ -79,66 +81,57 @@ const balanceOf = async (address: Address): Promise<void> => {
     .catch((error: Error) => console.log(error));
 };
 
-// const hideToxicPowerInfo = (index: number) => {
-//   quantityToxicPower[index].classList.add('is-hidden')
-//   earningsItemDetailsNumber[index].classList.add('is-hidden')
-//   earningsItemDetailsText[index].classList.add('is-hidden')
-//   burnButton[index].classList.add('is-hidden')
-// }
+const showToxicPowerInfo = (index: number, balance: string) => {
+  quantityToxicPower[index].innerText = balance + 'x'
+  earningsItemDetailsList[index].classList.remove('is-hidden')
+  quantityToxicPower[index].classList.remove('is-hidden')
+  earningsItemImage[index].classList.remove('is-hidden')
+  quantityToxicPower[index].style.justifySelf = 'end'
+}
 
-// const balanceOfToxicPower = async (address: Address): Promise<void> => {
-//   let sumBalanceOfToxicPower: number = -1;
+const getToxicPowerBalanceFromContract = async (address: Address): Promise<Array<string>> => {
+  // return Promise.all([0, 1, 2].map(async (balanceQuantity, i) => {
+  //   const quantity = await contractToxicPower.methods.balanceOf(address, balanceQuantity).call()
+  //   balanceQuantities.push(quantity)
+  // }))
 
-//   earningsItemDetails.classList.remove('is-hidden')
-//   noToxicPowerAvailable.classList.add('is-hidden')
+  let balanceQuantities = [];
 
-//   const toxicBalance: ToxicBalance = {
-//     balanceOne: 0,
-//     balanceTwo: 0,
-//     balanceThree: 0,
-//   }
+  const array = [0, 1, 2]
+  try {
+    for await (let item of array) {
+      const balance = await contractToxicPower.methods.balanceOf(address, item).call()
+      balanceQuantities.push(balance)
+    }
+  } catch (error) {
+    console.log(error)
+  }
+  return balanceQuantities
+}
 
-//   contractToxicPower.methods.balanceOf(address, 0).call().then((balance: string) => {
-//     toxicBalance.balanceOne = Number(balance)
-//     quantityToxicPower[0].innerText = balance
-//     if (Number(balance) === 0) {
-//       hideToxicPowerInfo(0)
-//     } else {
-//       console.log('nao?')
-//       sumBalanceOfToxicPower = sumBalanceOfToxicPower++;
-//       console.log('aqui', sumBalanceOfToxicPower++)
-//     }
-//     console.log('balance of toxic power', balance)
-//   })
-//   contractToxicPower.methods.balanceOf(address, 1).call().then((balance: string) => {
-//     toxicBalance.balanceTwo = Number(balance)
-//     quantityToxicPower[1].innerText = balance
-//     if (Number(balance) === 0) {
-//       hideToxicPowerInfo(1)
-//     } else {
-//       sumBalanceOfToxicPower++;
-//     }
-//     console.log('balance of toxic power', balance)
-//   })
-//   contractToxicPower.methods.balanceOf(address, 2).call().then((balance: string) => {
-//     toxicBalance.balanceThree = Number(balance)
-//     quantityToxicPower[2].innerText = balance
-//     if (Number(balance) === 0) {
-//       hideToxicPowerInfo(2)
-//     } else {
-//       sumBalanceOfToxicPower++;
-//     }
-//     console.log('balance of toxic power', balance)
-//   })
+const balanceOfToxicPower = async (address: Address): Promise<void> => {
+  let sumBalanceOfToxicPower: number = -1;
 
-//   console.log('sum', sumBalanceOfToxicPower)
+  noToxicPowerAvailable.classList.add('is-hidden')
 
-//   if (sumBalanceOfToxicPower < 0) {
-//     console.log('chegou no if sem nada')
-//     earningsItemDetails.classList.add('is-hidden')
-//     noToxicPowerAvailable?.classList.remove('is-hidden')
-//   }
-// }
+  try {
+    const balanceQuantities: Array<string> = await getToxicPowerBalanceFromContract(address)
+    console.log(balanceQuantities)
+
+    balanceQuantities.slice().reverse().forEach((quantity, i) => {
+      if (Number(quantity) > 0) {
+        showToxicPowerInfo(i, quantity)
+        sumBalanceOfToxicPower++;
+      }
+    })
+
+    if (sumBalanceOfToxicPower < 0) {
+      noToxicPowerAvailable.classList.remove('is-hidden')
+    } else {
+      burnButtonWrapper.classList.remove('is-hidden')
+    }
+  } catch (error) { console.log(error) }
+}
 
 const fillInfo = async (address: Address) => {
   connectedTo.innerText =
@@ -151,11 +144,11 @@ const fillInfo = async (address: Address) => {
   navTopBar.classList.remove('is-hidden');
   navTopBarWrapper.classList.add('is-hidden');
 
-  balanceOf(address);
+  await balanceOf(address);
 
-  getTotalClaimable(address);
+  await getTotalClaimable(address);
 
-  // await balanceOfToxicPower(address)
+  await balanceOfToxicPower(address)
 
   contractToken.methods
     .lastUpdate(address)
@@ -479,7 +472,6 @@ const checkUserIsConnected = async () => {
 
       await fillInfo(accounts[0]);
 
-      // await balanceOfToxicPower(accounts[0])
     }
   } catch (error) {
     console.log(error);
