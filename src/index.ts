@@ -2,19 +2,19 @@ import { default as Web3 } from "web3"
 import { AbiItem } from 'web3-utils'
 import ABI from './contracts/ABI.json'
 import ABIunity from './contracts/ABI55Unity.json'
+import ABI_TOXIC_POWER from './contracts/ABI_TOXIC_POWER.json'
 import { getStake } from "./api/get-stake"
 import { setStake } from "./api/set-stake"
 import { getTokensFromDb } from "./api/get-tokens-from-db"
 import { createUser } from "./api/create-user"
-import { Address, TokenFromContract, Tokens, TokensFromDb } from "./types/types"
+import { Address, TokenFromContract, Tokens, TokensFromDb, ToxicBalance } from "./types/types"
+import { checkEthereumInstalled, handleAccountChanged, handleChainChanged } from "./utils/events"
 
 const web3 = new Web3(Web3.givenProvider);
 
-const CHAIN_ID = process.env.CHAIN_ID as string
-
-console.log(CHAIN_ID)
 const CONTRACT_ADDRESS_TOKEN = process.env.CONTRACT_ADDRESS_TOKEN as string
 const CONTRACT_ADDRESS_55 = process.env.CONTRACT_ADDRESS_55 as string
+const CONTRACT_ADDRESS_TOXIC_POWER = process.env.CONTRACT_ADDRESS_TOXIC_POWER as string
 const PROJECT_ID = process.env.PROJECT_ID as string
 
 const connectButton = document.querySelector('.connect-button') as HTMLButtonElement;
@@ -33,13 +33,23 @@ const saveChangesButton = document.querySelector('.earnings_select-button') as H
 const dailyWield = document.querySelector('.daily-wield') as HTMLDivElement;
 const navTopBar = document.querySelector('.top-nav_connected-wrapper') as HTMLDivElement;
 const navTopBarWrapper = document.querySelector('.top-nav_buttons-wrapper') as HTMLDivElement;
+const quantityToxicPower = Array.from(document.getElementsByClassName('quantity_toxic_power') as HTMLCollectionOf<HTMLDivElement>)
+const earningsItemDetailsText = Array.from(document.getElementsByClassName('earnings_item-details-text') as HTMLCollectionOf<HTMLDivElement>)
+const earningsItemDetailsNumber = Array.from(document.getElementsByClassName('earnings_item-details-number') as HTMLCollectionOf<HTMLDivElement>)
+const burnButton = Array.from(document.getElementsByClassName('burn-button') as HTMLCollectionOf<HTMLButtonElement>)
+const noToxicPowerAvailable = document.querySelector('.no-toxic-power__wrapper') as HTMLDivElement
+const earningsItemDetails = document.querySelector('.earnings_item-details') as HTMLDivElement
+
 
 const contractToken = new web3.eth.Contract(ABI as AbiItem[], CONTRACT_ADDRESS_TOKEN);
 const contract55 = new web3.eth.Contract(ABIunity as AbiItem[], CONTRACT_ADDRESS_55);
+// const contractToxicPower = new web3.eth.Contract(ABI_TOXIC_POWER as AbiItem[], CONTRACT_ADDRESS_TOXIC_POWER)
 
 let tokenStake: Tokens = [];
 let tokenFromContract: Tokens = [];
 let stakedBalanceFromUser = 0;
+let balance = 0;
+let sumToClaim = 0;
 
 const getTotalClaimable = async (address: Address) => {
   contractToken.methods
@@ -52,7 +62,7 @@ const getTotalClaimable = async (address: Address) => {
       totalClaimable.innerText =
         Number(web3.utils.fromWei(total, 'ether')).toFixed(3) + ' $SURVIVE';
       sumToClaim = +web3.utils.fromWei(total, 'ether');
-    });
+    }).catch((error: Error) => console.log(error))
 };
 
 const balanceOf = async (address: Address): Promise<void> => {
@@ -69,8 +79,68 @@ const balanceOf = async (address: Address): Promise<void> => {
     .catch((error: Error) => console.log(error));
 };
 
+// const hideToxicPowerInfo = (index: number) => {
+//   quantityToxicPower[index].classList.add('is-hidden')
+//   earningsItemDetailsNumber[index].classList.add('is-hidden')
+//   earningsItemDetailsText[index].classList.add('is-hidden')
+//   burnButton[index].classList.add('is-hidden')
+// }
+
+// const balanceOfToxicPower = async (address: Address): Promise<void> => {
+//   let sumBalanceOfToxicPower: number = -1;
+
+//   earningsItemDetails.classList.remove('is-hidden')
+//   noToxicPowerAvailable.classList.add('is-hidden')
+
+//   const toxicBalance: ToxicBalance = {
+//     balanceOne: 0,
+//     balanceTwo: 0,
+//     balanceThree: 0,
+//   }
+
+//   contractToxicPower.methods.balanceOf(address, 0).call().then((balance: string) => {
+//     toxicBalance.balanceOne = Number(balance)
+//     quantityToxicPower[0].innerText = balance
+//     if (Number(balance) === 0) {
+//       hideToxicPowerInfo(0)
+//     } else {
+//       console.log('nao?')
+//       sumBalanceOfToxicPower = sumBalanceOfToxicPower++;
+//       console.log('aqui', sumBalanceOfToxicPower++)
+//     }
+//     console.log('balance of toxic power', balance)
+//   })
+//   contractToxicPower.methods.balanceOf(address, 1).call().then((balance: string) => {
+//     toxicBalance.balanceTwo = Number(balance)
+//     quantityToxicPower[1].innerText = balance
+//     if (Number(balance) === 0) {
+//       hideToxicPowerInfo(1)
+//     } else {
+//       sumBalanceOfToxicPower++;
+//     }
+//     console.log('balance of toxic power', balance)
+//   })
+//   contractToxicPower.methods.balanceOf(address, 2).call().then((balance: string) => {
+//     toxicBalance.balanceThree = Number(balance)
+//     quantityToxicPower[2].innerText = balance
+//     if (Number(balance) === 0) {
+//       hideToxicPowerInfo(2)
+//     } else {
+//       sumBalanceOfToxicPower++;
+//     }
+//     console.log('balance of toxic power', balance)
+//   })
+
+//   console.log('sum', sumBalanceOfToxicPower)
+
+//   if (sumBalanceOfToxicPower < 0) {
+//     console.log('chegou no if sem nada')
+//     earningsItemDetails.classList.add('is-hidden')
+//     noToxicPowerAvailable?.classList.remove('is-hidden')
+//   }
+// }
+
 const fillInfo = async (address: Address) => {
-  console.log(address);
   connectedTo.innerText =
     'CONNECTED TO: ' +
     address.substring(0, 5) +
@@ -84,6 +154,8 @@ const fillInfo = async (address: Address) => {
   balanceOf(address);
 
   getTotalClaimable(address);
+
+  // await balanceOfToxicPower(address)
 
   contractToken.methods
     .lastUpdate(address)
@@ -122,9 +194,6 @@ const fillInfo = async (address: Address) => {
           totalNftsOfUser.innerText = String(tokens.length);
           dailyWield.innerText = (tokens.length * 0.27369863013).toFixed(3);
         }
-
-
-
       });
 
       getTokensFromDb(tokenFromContract).then((response) => {
@@ -272,9 +341,6 @@ const fillInfo = async (address: Address) => {
     });
 };
 
-let balance = 0;
-
-let sumToClaim = 0;
 
 const connectWallet = async function () {
   try {
@@ -285,6 +351,7 @@ const connectWallet = async function () {
       await createUser(accounts[0], PROJECT_ID);
 
       await fillInfo(accounts[0]);
+
     }
   } catch (error) {
     console.log(error);
@@ -403,36 +470,6 @@ const saveChanges = async function () {
   }
 };
 
-saveChangesButton.addEventListener('click', saveChanges);
-claimButton.addEventListener('click', claimToken);
-connectButton.addEventListener('click', connectWallet);
-
-if (!(window as any).ethereum) {
-  connectedTo.innerText = 'PLEASE INSTALL METAMASK';
-  connectedTo.classList.remove('is-hidden');
-  connectButton.classList.add('is-hidden');
-}
-
-(window as any).ethereum.on('chainChanged', handleChainChanged);
-
-function handleChainChanged(_chainId: string) {
-  if (_chainId !== CHAIN_ID) {
-    connectButton.classList.add('is-hidden');
-    connectedTo.classList.remove('is-hidden');
-    connectedTo.innerText = 'PLEASE CHANGE YOUR CHAIN TO THE MAINNET';
-  } else {
-    window.location.reload();
-  }
-}
-
-(window as any).ethereum.on('accountsChanged', handleAccountChanged);
-
-function handleAccountChanged(_account: Address) {
-  if (connectedTo?.textContent !== '') {
-    window.location.reload();
-  }
-}
-
 const checkUserIsConnected = async () => {
   try {
     const accounts = await web3.eth.getAccounts();
@@ -441,6 +478,8 @@ const checkUserIsConnected = async () => {
       await createUser(accounts[0], PROJECT_ID);
 
       await fillInfo(accounts[0]);
+
+      // await balanceOfToxicPower(accounts[0])
     }
   } catch (error) {
     console.log(error);
@@ -448,3 +487,27 @@ const checkUserIsConnected = async () => {
 };
 
 checkUserIsConnected();
+
+saveChangesButton.addEventListener('click', saveChanges);
+claimButton.addEventListener('click', claimToken);
+connectButton.addEventListener('click', connectWallet);
+
+const hasMetamask = checkEthereumInstalled()
+if (!hasMetamask) {
+  connectedTo.innerText = 'PLEASE INSTALL METAMASK';
+  navTopBar.classList.remove('is-hidden')
+  connectedTo.classList.remove('is-hidden');
+  connectButton.classList.add('is-hidden');
+  balanceWrapper.classList.add('is-hidden')
+}
+
+
+(window as any).ethereum.on('chainChanged', (chainId: string) => handleChainChanged(chainId, connectedTo, connectButton));
+
+(window as any).ethereum.on('accountsChanged', handleAccountChanged);
+
+
+
+
+
+

@@ -24,7 +24,8 @@ module.exports = merge(common, {
                 PROJECT_ID: JSON.stringify('61f073affc34b52c4ac0edf8'),
                 SERVER: JSON.stringify('http://localhost:3001'),
                 SERVER_SEAMORE: JSON.stringify('https://seamore.55unity.com'),
-                AUTHENTICATION: JSON.stringify('a9a5d580243b9ee0ab8377695b573e3aa8877803ac2596067d4b8e4ac8254266')
+                AUTHENTICATION: JSON.stringify('a9a5d580243b9ee0ab8377695b573e3aa8877803ac2596067d4b8e4ac8254266'),
+                CONTRACT_ADDRESS_TOXIC_POWER: JSON.stringify('0xaf5f821e1ea6c8463cb7c575c8893a8d93439d94')
             }
         })
     ]

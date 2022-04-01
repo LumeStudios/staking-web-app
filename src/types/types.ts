@@ -29,4 +29,10 @@ export type TokensFromDb = {
     score: string,
 }
 
-export type TokenFromContract = Array<string> 
+export type TokenFromContract = Array<string>
+
+export type ToxicBalance = {
+    balanceOne: number,
+    balanceTwo: number,
+    balanceThree: number
+}
