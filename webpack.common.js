@@ -2,7 +2,7 @@ const path = require('path');
 const webpack = require('webpack')
 
 module.exports = {
-    entry: './src/index-dashboard.ts',
+    entry: './src/index_dashboard.ts',
     module: {
         rules: [
             {
@@ -38,7 +38,7 @@ module.exports = {
         },
     },
     output: {
-        filename: 'new-bundle.js',
+        filename: 'new_bundle.js',
         path: path.resolve(__dirname, 'dist')
     }
 };
