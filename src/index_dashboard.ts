@@ -34,14 +34,10 @@ const dailyWield = document.querySelector('.daily-wield') as HTMLDivElement;
 const navTopBar = document.querySelector('.top-nav_connected-wrapper') as HTMLDivElement;
 const navTopBarWrapper = document.querySelector('.top-nav_buttons-wrapper') as HTMLDivElement;
 const quantityToxicPower = Array.from(document.getElementsByClassName('quantity_toxic_power') as HTMLCollectionOf<HTMLDivElement>)
-const earningsItemDetailsText = Array.from(document.getElementsByClassName('earnings_item-details-text') as HTMLCollectionOf<HTMLDivElement>)
-const earningsItemDetailsNumber = Array.from(document.getElementsByClassName('earnings_item-details-number') as HTMLCollectionOf<HTMLDivElement>)
 const noToxicPowerAvailable = document.querySelector('.no-toxic-power__wrapper') as HTMLDivElement
 const earningsItemDetailsList = Array.from(document.getElementsByClassName('earnings_item-details-list') as HTMLCollectionOf<HTMLDivElement>)
 const earningsItemImage = Array.from(document.getElementsByClassName('earnings_item-details-image') as HTMLCollectionOf<HTMLImageElement>)
 const burnButtonWrapper = document.querySelector('.burn-button__wrapper') as HTMLButtonElement
-
-
 
 const contractToken = new web3.eth.Contract(ABI as AbiItem[], CONTRACT_ADDRESS_TOKEN);
 const contract55 = new web3.eth.Contract(ABIunity as AbiItem[], CONTRACT_ADDRESS_55);
@@ -90,10 +86,6 @@ const showToxicPowerInfo = (index: number, balance: string) => {
 }
 
 const getToxicPowerBalanceFromContract = async (address: Address): Promise<Array<string>> => {
-  // return Promise.all([0, 1, 2].map(async (balanceQuantity, i) => {
-  //   const quantity = await contractToxicPower.methods.balanceOf(address, balanceQuantity).call()
-  //   balanceQuantities.push(quantity)
-  // }))
 
   let balanceQuantities = [];
 
@@ -386,54 +378,112 @@ const saveChanges = async function () {
 
   if (accounts.length !== 0) {
     if (tokenStake.length !== Number(stakedBalanceFromUser)) {
-      contractToken.methods
-        .stake(tokenStake.length)
-        .send({
-          from: accounts[0],
-          to: CONTRACT_ADDRESS_TOKEN,
-        })
-        .then((response: any) => {
-          setStake(accounts[0], PROJECT_ID, tokenStake)
-            .then((response) => {
-              getTotalClaimable(accounts[0]);
-
-              balanceOf(accounts[0]);
-
-              contractToken.methods
-                .stakedBalance(accounts[0])
-                .call()
-                .then((stakedBalance: number) => {
-                  console.log(stakedBalance);
-                  stakedBalanceFromUser = stakedBalance;
-                  console.log('staked', stakedBalanceFromUser);
-                });
-
-              getStake(accounts[0], PROJECT_ID).then((response) => {
-                if (response) {
-                  const { tokens } = response.data;
-                  tokenStake = tokens;
-                  tokenStake.sort();
-                  totalNftsOfUser.innerText = String(tokens.length);
-                  dailyWield.innerText = (tokens.length * 0.27369863013).toFixed(
-                    3
-                  );
-                  saveChangesButton.classList.remove('is-hidden');
-                  loadingState[0].classList.add('is-hidden');
-                }
-
-              });
+      if (tokenStake.length === 0) {
+        const answer = window.confirm('There are no heroes at the HQ. Are you sure you want to continue?')
+        if (answer) {
+          contractToken.methods
+            .stake(tokenStake.length)
+            .send({
+              from: accounts[0],
+              to: CONTRACT_ADDRESS_TOKEN,
             })
-            .catch((error) => {
+            .then((response: any) => {
+              setStake(accounts[0], PROJECT_ID, tokenStake)
+                .then((response) => {
+                  getTotalClaimable(accounts[0]);
+
+                  balanceOf(accounts[0]);
+
+                  contractToken.methods
+                    .stakedBalance(accounts[0])
+                    .call()
+                    .then((stakedBalance: number) => {
+                      console.log(stakedBalance);
+                      stakedBalanceFromUser = stakedBalance;
+                      console.log('staked', stakedBalanceFromUser);
+                    });
+
+                  getStake(accounts[0], PROJECT_ID).then((response) => {
+                    if (response) {
+                      const { tokens } = response.data;
+                      tokenStake = tokens;
+                      tokenStake.sort();
+                      totalNftsOfUser.innerText = String(tokens.length);
+                      dailyWield.innerText = (tokens.length * 0.27369863013).toFixed(
+                        3
+                      );
+                      saveChangesButton.classList.remove('is-hidden');
+                      loadingState[0].classList.add('is-hidden');
+                    }
+
+                  });
+                })
+                .catch((error) => {
+                  loadingState[0].classList.add('is-hidden');
+                  saveChangesButton.classList.remove('is-hidden');
+                  console.log(error);
+                });
+            })
+            .catch((error: Error) => {
+              console.log(error);
               loadingState[0].classList.add('is-hidden');
               saveChangesButton.classList.remove('is-hidden');
-              console.log(error);
             });
-        })
-        .catch((error: Error) => {
-          console.log(error);
-          loadingState[0].classList.add('is-hidden');
+        } else {
           saveChangesButton.classList.remove('is-hidden');
-        });
+          loadingState[0].classList.add('is-hidden');
+        }
+      } else {
+        contractToken.methods
+          .stake(tokenStake.length)
+          .send({
+            from: accounts[0],
+            to: CONTRACT_ADDRESS_TOKEN,
+          })
+          .then((response: any) => {
+            setStake(accounts[0], PROJECT_ID, tokenStake)
+              .then((response) => {
+                getTotalClaimable(accounts[0]);
+
+                balanceOf(accounts[0]);
+
+                contractToken.methods
+                  .stakedBalance(accounts[0])
+                  .call()
+                  .then((stakedBalance: number) => {
+                    console.log(stakedBalance);
+                    stakedBalanceFromUser = stakedBalance;
+                    console.log('staked', stakedBalanceFromUser);
+                  });
+
+                getStake(accounts[0], PROJECT_ID).then((response) => {
+                  if (response) {
+                    const { tokens } = response.data;
+                    tokenStake = tokens;
+                    tokenStake.sort();
+                    totalNftsOfUser.innerText = String(tokens.length);
+                    dailyWield.innerText = (tokens.length * 0.27369863013).toFixed(
+                      3
+                    );
+                    saveChangesButton.classList.remove('is-hidden');
+                    loadingState[0].classList.add('is-hidden');
+                  }
+
+                });
+              })
+              .catch((error) => {
+                loadingState[0].classList.add('is-hidden');
+                saveChangesButton.classList.remove('is-hidden');
+                console.log(error);
+              });
+          })
+          .catch((error: Error) => {
+            console.log(error);
+            loadingState[0].classList.add('is-hidden');
+            saveChangesButton.classList.remove('is-hidden');
+          });
+      }
+
     } else {
       setStake(accounts[0], PROJECT_ID, tokenStake)
         .then((response) => {
