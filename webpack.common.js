@@ -38,7 +38,7 @@ module.exports = {
         },
     },
     output: {
-        filename: 'new_bundle.js',
+        filename: 'new_bundlev1.1.1.js',
         path: path.resolve(__dirname, 'dist')
     }
 };
