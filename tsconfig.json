@@ -8,6 +8,7 @@
         "noImplicitAny": true,
         "moduleResolution": "node",
         "target": "ES2021",
+        "downlevelIteration": true,
         "skipLibCheck": true,
         "esModuleInterop": true,
         "forceConsistentCasingInFileNames": true,

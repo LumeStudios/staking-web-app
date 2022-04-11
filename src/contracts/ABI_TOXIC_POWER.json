@@ -227,14 +227,27 @@
   {
     "inputs": [
       {
-        "internalType": "uint256",
-        "name": "tokenId",
-        "type": "uint256"
+        "internalType": "uint256[]",
+        "name": "tokensId",
+        "type": "uint256[]"
       }
     ],
     "name": "burn",
     "outputs": [],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "burnWindowOpens",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
     "type": "function"
   },
   {
@@ -380,7 +393,7 @@
         "type": "address"
       }
     ],
-    "name": "purchaseToxicOne",
+    "name": "purchasedToxicOne",
     "outputs": [
       {
         "internalType": "uint256",
@@ -399,7 +412,7 @@
         "type": "address"
       }
     ],
-    "name": "purchaseToxicThree",
+    "name": "purchasedToxicThree",
     "outputs": [
       {
         "internalType": "uint256",
@@ -418,7 +431,7 @@
         "type": "address"
       }
     ],
-    "name": "purchaseToxicTwo",
+    "name": "purchasedToxicTwo",
     "outputs": [
       {
         "internalType": "uint256",
@@ -550,7 +563,7 @@
     "inputs": [
       {
         "internalType": "uint256",
-        "name": "_windowOpens",
+        "name": "_burnWindowOpens",
         "type": "uint256"
       },
       {
@@ -688,19 +701,6 @@
   {
     "inputs": [],
     "name": "windowCloses",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "windowOpens",
     "outputs": [
       {
         "internalType": "uint256",

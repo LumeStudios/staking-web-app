@@ -1,116 +1,114 @@
 import { default as Web3 } from "web3"
-import { AbiItem } from 'web3-utils'
-import ABI from './contracts/ABI.json'
-import ABIunity from './contracts/ABI55Unity.json'
-import ABI_TOXIC_POWER from './contracts/ABI_TOXIC_POWER.json'
 import { getStake } from "./api/get-stake"
 import { setStake } from "./api/set-stake"
 import { getTokensFromDb } from "./api/get-tokens-from-db"
 import { createUser } from "./api/create-user"
-import { Address, TokenFromContract, Tokens, TokensFromDb, ToxicBalance } from "./types/types"
+import { Address, TokenFromContract, Tokens, TokensFromDb } from "./types/types"
 import { checkEthereumInstalled, handleAccountChanged, handleChainChanged } from "./utils/events"
+import { burn, claim, getBalanceOf, getLastUpdate, getStakedBalance, getTotalClaimable, getToxicPowerBalanceFromContract, getWalletOfOwner, stake } from "./utils/contract-utils"
 
 const web3 = new Web3(Web3.givenProvider);
 
-const CONTRACT_ADDRESS_TOKEN = process.env.CONTRACT_ADDRESS_TOKEN as string
-const CONTRACT_ADDRESS_55 = process.env.CONTRACT_ADDRESS_55 as string
-const CONTRACT_ADDRESS_TOXIC_POWER = process.env.CONTRACT_ADDRESS_TOXIC_POWER as string
 const PROJECT_ID = process.env.PROJECT_ID as string
 
-const connectButton = document.querySelector('.connect-button') as HTMLButtonElement;
-const connectedTo = document.querySelector('.connected-to') as HTMLDivElement;
-const balanceWrapper = document.querySelector('.balance-wrapper') as HTMLDivElement;
-const balanceText = document.querySelector('.balance-text') as HTMLDivElement;
-const totalClaimable = document.querySelector('.earnings_item-claim-text') as HTMLDivElement;
-const claimButton = document.querySelector('.claim-button') as HTMLButtonElement;
-const loadingState = document.getElementsByClassName('loading-animation') as HTMLCollectionOf<HTMLDivElement>;
-const totalNftsOfUser = document.querySelector('.total-nfts') as HTMLDivElement;
-const totalNftsOfUserSpan = document.querySelector(
+let D: Document = document
+
+const connectButton = D.querySelector('.connect-button') as HTMLButtonElement;
+const connectedTo = D.querySelector('.connected-to') as HTMLDivElement;
+const balanceWrapper = D.querySelector('.balance-wrapper') as HTMLDivElement;
+const balanceText = D.querySelector('.balance-text') as HTMLDivElement;
+const totalClaimable = D.querySelector('.earnings_item-claim-text') as HTMLDivElement;
+const claimButton = D.querySelector('.claim-button') as HTMLButtonElement;
+const loadingState = D.getElementsByClassName('loading-animation') as HTMLCollectionOf<HTMLDivElement>;
+const totalNftsOfUser = D.querySelector('.total-nfts') as HTMLDivElement;
+const totalNftsOfUserSpan = D.querySelector(
   '.rarity_low-opacity-text-span'
 ) as HTMLSpanElement;
-const nftLayout = document.querySelector('.owned-nfts_list-layout') as HTMLDivElement;
-const saveChangesButton = document.querySelector('.earnings_select-button') as HTMLButtonElement;
-const dailyWield = document.querySelector('.daily-wield') as HTMLDivElement;
-const navTopBar = document.querySelector('.top-nav_connected-wrapper') as HTMLDivElement;
-const navTopBarWrapper = document.querySelector('.top-nav_buttons-wrapper') as HTMLDivElement;
-const quantityToxicPower = Array.from(document.getElementsByClassName('quantity_toxic_power') as HTMLCollectionOf<HTMLDivElement>)
-const noToxicPowerAvailable = document.querySelector('.no-toxic-power__wrapper') as HTMLDivElement
-const earningsItemDetailsList = Array.from(document.getElementsByClassName('earnings_item-details-list') as HTMLCollectionOf<HTMLDivElement>)
-const earningsItemImage = Array.from(document.getElementsByClassName('earnings_item-details-image') as HTMLCollectionOf<HTMLImageElement>)
-const burnButtonWrapper = document.querySelector('.burn-button__wrapper') as HTMLButtonElement
-
-const contractToken = new web3.eth.Contract(ABI as AbiItem[], CONTRACT_ADDRESS_TOKEN);
-const contract55 = new web3.eth.Contract(ABIunity as AbiItem[], CONTRACT_ADDRESS_55);
-const contractToxicPower = new web3.eth.Contract(ABI_TOXIC_POWER as AbiItem[], CONTRACT_ADDRESS_TOXIC_POWER)
+const nftLayout = D.querySelector('.owned-nfts_list-layout') as HTMLDivElement;
+const saveChangesButton = D.querySelector('.earnings_select-button') as HTMLButtonElement;
+const dailyWield = D.querySelector('.daily-wield') as HTMLDivElement;
+const navTopBar = D.querySelector('.top-nav_connected-wrapper') as HTMLDivElement;
+const navTopBarWrapper = D.querySelector('.top-nav_buttons-wrapper') as HTMLDivElement;
+const quantityToxicPowerShown = Array.from(D.getElementsByClassName('quantity_toxic_power') as HTMLCollectionOf<HTMLDivElement>)
+const noToxicPowerAvailable = D.querySelector('.no-toxic-power__wrapper') as HTMLDivElement
+const earningsItemDetailsList = Array.from(D.getElementsByClassName('earnings_item-details-list') as HTMLCollectionOf<HTMLDivElement>)
+const earningsItemImage = Array.from(D.getElementsByClassName('earnings_item-details-image') as HTMLCollectionOf<HTMLImageElement>)
+const burnButtonWrapper = D.querySelector('.burn-button__wrapper') as HTMLDivElement
+const burnButton = D.querySelector('.burn-button') as HTMLButtonElement
+const quantityWrapper = Array.from(D.getElementsByClassName('quantity-wrapper') as HTMLCollectionOf<HTMLDivElement>)
+const minusButton = Array.from(D.getElementsByClassName('minus-button') as HTMLCollectionOf<HTMLButtonElement>)
+const sumButton = Array.from(D.getElementsByClassName('sum-button') as HTMLCollectionOf<HTMLButtonElement>)
 
 let tokenStake: Tokens = [];
 let tokenFromContract: Tokens = [];
 let stakedBalanceFromUser = 0;
 let balance = 0;
 let sumToClaim = 0;
+let balanceToxicPower: Array<string> = []
+let quantityToxicPowerChosen: Array<number> = [];
 
-const getTotalClaimable = async (address: Address) => {
-  contractToken.methods
-    .getTotalClaimable(address)
-    .call()
-    .then((total: string) => {
-      if (+total !== 0) {
-        claimButton.classList.remove('is-disabled');
-      }
-      totalClaimable.innerText =
-        Number(web3.utils.fromWei(total, 'ether')).toFixed(3) + ' $SURVIVE';
-      sumToClaim = +web3.utils.fromWei(total, 'ether');
-    }).catch((error: Error) => console.log(error))
-};
+const setError = (i: number) => {
+  burnButton.classList.remove('is-hidden')
+  claimButton.classList.remove('is-hidden')
+  saveChangesButton.classList.remove('is-hidden');
+  loadingState[i].classList.add('is-hidden');
+}
 
-const balanceOf = async (address: Address): Promise<void> => {
-  contractToken.methods
-    .balanceOf(address)
-    .call()
-    .then((userBalance: string) => {
-      balanceText.innerText = Number(
-        web3.utils.fromWei(userBalance, 'ether')
-      ).toFixed(3);
-      balanceWrapper.classList.remove('is-hidden');
-      balance = +web3.utils.fromWei(userBalance, 'ether');
-    })
-    .catch((error: Error) => console.log(error));
+const setLoading = (i: number) => {
+  burnButton.classList.add('is-hidden')
+  claimButton.classList.add('is-hidden');
+  saveChangesButton.classList.add('is-hidden');
+  loadingState[i].classList.remove('is-hidden')
+}
+
+const setConnectedWallet = (address: Address) => {
+  connectedTo.innerText =
+    'CONNECTED TO: ' +
+    address.substring(0, 5) +
+    '...' +
+    address.substring(address.length - 4, address.length);
+  connectedTo.classList.remove('is-hidden');
+  connectButton.classList.add('is-hidden');
+  navTopBar.classList.remove('is-hidden');
+  navTopBarWrapper.classList.add('is-hidden');
+}
+
+const setTotalClaimable = async (address: Address): Promise<void> => {
+  const total = await getTotalClaimable(address)
+  if (Number(total) !== 0) claimButton.classList.remove('is-disabled')
+
+  totalClaimable.innerText =
+    Number(web3.utils.fromWei(total, 'ether')).toFixed(3) + ' $SURVIVE';
+  sumToClaim = +web3.utils.fromWei(total, 'ether');
+}
+
+const setBalanceOf = async (address: Address): Promise<void> => {
+  const userBalance: string = await getBalanceOf(address)
+
+  balanceText.innerText = Number(
+    web3.utils.fromWei(userBalance, 'ether')
+  ).toFixed(3);
+  balanceWrapper.classList.remove('is-hidden');
+  balance = +web3.utils.fromWei(userBalance, 'ether');
 };
 
 const showToxicPowerInfo = (index: number, balance: string) => {
-  quantityToxicPower[index].innerText = balance + 'x'
   earningsItemDetailsList[index].classList.remove('is-hidden')
-  quantityToxicPower[index].classList.remove('is-hidden')
+  quantityToxicPowerShown[index].classList.remove('is-hidden')
   earningsItemImage[index].classList.remove('is-hidden')
-  quantityToxicPower[index].style.justifySelf = 'end'
+  quantityToxicPowerShown[index].style.justifySelf = 'end'
+  quantityWrapper[index].classList.remove('is-hidden')
 }
 
-const getToxicPowerBalanceFromContract = async (address: Address): Promise<Array<string>> => {
-
-  let balanceQuantities = [];
-
-  const array = [0, 1, 2]
-  try {
-    for await (let item of array) {
-      const balance = await contractToxicPower.methods.balanceOf(address, item).call()
-      balanceQuantities.push(balance)
-    }
-  } catch (error) {
-    console.log(error)
-  }
-  return balanceQuantities
-}
-
-const balanceOfToxicPower = async (address: Address): Promise<void> => {
+const setBalanceOfToxicPower = async (address: Address): Promise<void> => {
   let sumBalanceOfToxicPower: number = -1;
-
   noToxicPowerAvailable.classList.add('is-hidden')
-
   try {
-    const balanceQuantities: Array<string> = await getToxicPowerBalanceFromContract(address)
-    console.log(balanceQuantities)
+    balanceToxicPower = await getToxicPowerBalanceFromContract(address)
 
-    balanceQuantities.slice().reverse().forEach((quantity, i) => {
+    console.log(balanceToxicPower)
+
+    balanceToxicPower.forEach((quantity, i) => {
       if (Number(quantity) > 0) {
         showToxicPowerInfo(i, quantity)
         sumBalanceOfToxicPower++;
@@ -125,207 +123,211 @@ const balanceOfToxicPower = async (address: Address): Promise<void> => {
   } catch (error) { console.log(error) }
 }
 
+const setLastUpdate = async (address: Address) => {
+  const lastUpdate = await getLastUpdate(address)
+
+  if (Number(lastUpdate) === 0) {
+    claimButton.classList.add('is-disabled');
+  }
+}
+
+const setStakedBalance = async (address: Address) => {
+  const stakedBalance = await getStakedBalance(address)
+  stakedBalanceFromUser = stakedBalance;
+  console.log(stakedBalance)
+}
+
+const setWalletOfOwner = async (address: Address) => {
+  const tokens: TokenFromContract = await getWalletOfOwner(address)
+
+  let tokensFromWallet: TokenFromContract = []
+  saveChangesButton.classList.remove('is-hidden');
+  tokensFromWallet = tokens
+  tokenFromContract = tokensFromWallet.map((x) => parseInt(x));
+  totalNftsOfUserSpan.innerText = '(' + tokenFromContract.length + ')';
+}
+
+const showStakeInformation = async (address: Address) => {
+  const response = await getStake(address, PROJECT_ID)
+
+  if (response) {
+    const { tokens } = response.data
+    tokenStake = tokens;
+    tokenStake.sort();
+    totalNftsOfUser.innerText = String(tokens.length);
+    dailyWield.innerText = (tokens.length * 0.27369863013).toFixed(3);
+  }
+}
+
+const showTokens = async () => {
+  const response = await getTokensFromDb(tokenFromContract)
+
+  if (response) {
+    const tokens = response?.data
+    tokens?.forEach((info: TokensFromDb, i: number) => {
+      nftLayout.classList.remove('is-hidden');
+      const rarityItemContentWrapper = D.createElement('div');
+      const rarityItemContent = D.createElement('div');
+      const rarityItemMainContentWrapper = D.createElement('div');
+      const rarityItemMainContentLayoutLeft = D.createElement('div');
+      const rarityItemMainContentLayoutRight =
+        D.createElement('div');
+      const rarityItemInfoWrapperCollection = D.createElement('div');
+      const rarityItemInfoWrapperRarity = D.createElement('div');
+      const rarityItemInfoWrapperId = D.createElement('div');
+      const rarityItemInfoWrapperRank = D.createElement('div');
+      const earningsItemStatusWrapper = D.createElement('div');
+      const earningsItemStatusButtonHq = D.createElement('div');
+      const earningsItemStatusButtonMission = D.createElement('div');
+      earningsItemStatusButtonHq.classList.add(
+        'earnings_item-status-button'
+      );
+      earningsItemStatusButtonMission.classList.add(
+        'earnings_item-status-button'
+      );
+      earningsItemStatusButtonMission.classList.add('is-selected');
+      earningsItemStatusWrapper.classList.add(
+        'earnings_item-status-wrapper'
+      );
+      rarityItemContentWrapper.classList.add('rarity_item-content-wrapper');
+      rarityItemContent.classList.add('rarity_item-content');
+      rarityItemMainContentWrapper.classList.add(
+        'rarity_item-main-content-wrapper'
+      );
+      rarityItemMainContentLayoutLeft.classList.add(
+        'rarity_item-main-content-layout'
+      );
+      rarityItemMainContentLayoutRight.classList.add(
+        'rarity_item-main-content-layout'
+      );
+      rarityItemInfoWrapperCollection.classList.add(
+        'rarity_item-info-wrapper'
+      );
+      rarityItemInfoWrapperRarity.classList.add('rarity_item-info-wrapper');
+      rarityItemInfoWrapperId.classList.add('rarity_item-info-wrapper');
+      rarityItemInfoWrapperRank.classList.add('rarity_item-info-wrapper');
+      const labelCollection = D.createElement('div');
+      const labelId = D.createElement('div');
+      const labelRarity = D.createElement('div');
+      const labelRank = D.createElement('div');
+      labelCollection.classList.add('rarity_item-label');
+      labelRarity.classList.add('rarity_item-label');
+      labelRank.classList.add('rarity_item-label');
+      labelId.classList.add('rarity_item-label');
+      labelCollection.innerText = 'Collection';
+      labelRarity.innerText = 'Rarity Score';
+      labelRank.innerText = 'Rank';
+      labelId.innerText = 'ID';
+      const infoCollection = D.createElement('div');
+      const infoId = D.createElement('div');
+      const infoRarity = D.createElement('div');
+      const infoRank = D.createElement('div');
+      infoCollection.classList.add('rarity_item-text');
+      infoRarity.classList.add('rarity_item-text');
+      infoRank.classList.add('rarity_item-text');
+      infoId.classList.add('rarity_item-text');
+      infoCollection.innerText = '55Unity';
+      infoRarity.innerText = info.score;
+      infoRank.innerText = info.rank;
+      infoId.innerText = String(tokenFromContract[i]);
+      earningsItemStatusButtonHq.innerText = 'HQ';
+      earningsItemStatusButtonMission.innerText = 'Mission';
+      earningsItemStatusWrapper.appendChild(earningsItemStatusButtonHq);
+      earningsItemStatusWrapper.appendChild(
+        earningsItemStatusButtonMission
+      );
+      rarityItemInfoWrapperCollection.appendChild(labelCollection);
+      rarityItemInfoWrapperCollection.appendChild(infoCollection);
+      rarityItemInfoWrapperRarity.appendChild(labelRarity);
+      rarityItemInfoWrapperRarity.appendChild(infoRarity);
+      rarityItemMainContentLayoutLeft.appendChild(
+        rarityItemInfoWrapperCollection
+      );
+      rarityItemMainContentLayoutLeft.appendChild(
+        rarityItemInfoWrapperRarity
+      );
+      rarityItemInfoWrapperId.appendChild(labelId);
+      rarityItemInfoWrapperId.appendChild(infoId);
+      rarityItemInfoWrapperRank.appendChild(labelRank);
+      rarityItemInfoWrapperRank.appendChild(infoRank);
+      rarityItemMainContentLayoutRight.appendChild(rarityItemInfoWrapperId);
+      rarityItemMainContentLayoutRight.appendChild(
+        rarityItemInfoWrapperRank
+      );
+      rarityItemMainContentWrapper.appendChild(
+        rarityItemMainContentLayoutLeft
+      );
+      rarityItemMainContentWrapper.appendChild(
+        rarityItemMainContentLayoutRight
+      );
+      rarityItemContent.appendChild(rarityItemMainContentWrapper);
+      rarityItemContentWrapper.appendChild(rarityItemContent);
+      rarityItemContentWrapper.appendChild(earningsItemStatusWrapper);
+      const elementImage = D.createElement('img');
+      elementImage.setAttribute('src', info.imageUrl);
+      elementImage.classList.add('rarity_item-image');
+      const newNftCard = D.createElement('div');
+      newNftCard.classList.add('owned-nfts_item-component');
+      newNftCard.appendChild(elementImage);
+      newNftCard.appendChild(rarityItemContentWrapper);
+      nftLayout.appendChild(newNftCard);
+    })
+  }
+}
+
+const checkHQButton = (i: number, button: HTMLButtonElement) => {
+  return tokenStake.includes(tokenFromContract[i]) &&
+    button.innerText === 'HQ'
+}
+
+const selectHQButton = (button: HTMLButtonElement, buttons: HTMLButtonElement[], i: number) => {
+  button.classList.add('is-selected');
+  buttons[i + 1].classList.remove('is-selected');
+}
+
+const selectMissionButton = (index: number, button: HTMLButtonElement, buttons: HTMLButtonElement[], i: number) => {
+  let filteredtokenStake = tokenStake.filter(
+    (id) => tokenFromContract[index] !== id
+  );
+  tokenStake = filteredtokenStake;
+  button.classList.add('is-selected');
+  buttons[i - 1].classList.remove('is-selected');
+}
+
 const fillInfo = async (address: Address) => {
-  connectedTo.innerText =
-    'CONNECTED TO: ' +
-    address.substring(0, 5) +
-    '...' +
-    address.substring(address.length - 4, address.length);
-  connectedTo.classList.remove('is-hidden');
-  connectButton.classList.add('is-hidden');
-  navTopBar.classList.remove('is-hidden');
-  navTopBarWrapper.classList.add('is-hidden');
+  setConnectedWallet(address)
+  await setBalanceOf(address);
+  await setTotalClaimable(address);
+  await setBalanceOfToxicPower(address)
+  await setLastUpdate(address)
+  await setStakedBalance(address)
+  await setWalletOfOwner(address)
+  await showStakeInformation(address)
+  await showTokens()
 
-  await balanceOf(address);
+  const buttons = Array.from(
+    D.getElementsByClassName('earnings_item-status-button') as HTMLCollectionOf<HTMLButtonElement>)
 
-  await getTotalClaimable(address);
+  buttons.forEach((button, i) => {
+    let index = Math.floor(i / 2);
+    if (
+      checkHQButton(index, button)
+    ) {
+      selectHQButton(button, buttons, i)
+    }
 
-  await balanceOfToxicPower(address)
-
-  contractToken.methods
-    .lastUpdate(address)
-    .call()
-    .then((info: string) => {
-      if (+info === 0) {
-        claimButton.classList.add('is-disabled');
-      }
-    });
-
-  contractToken.methods
-    .stakedBalance(address)
-    .call()
-    .then((stakedBalance: number) => {
-      console.log(stakedBalance);
-      stakedBalanceFromUser = stakedBalance;
-      console.log('staked', stakedBalanceFromUser);
-    });
-
-  contract55.methods
-    .walletOfOwner(address)
-    .call()
-    .then((tokens: TokenFromContract) => {
-      let tokensFromWallet: TokenFromContract = []
-      saveChangesButton.classList.remove('is-hidden');
-      tokensFromWallet = tokens
-      console.log('token from contract', tokenFromContract);
-      tokenFromContract = tokensFromWallet.map((x) => parseInt(x));
-      totalNftsOfUserSpan.innerText = '(' + tokenFromContract.length + ')';
-
-      getStake(address, PROJECT_ID).then((response) => {
-        if (response) {
-          const { tokens } = response.data
-          tokenStake = tokens;
-          tokenStake.sort();
-          totalNftsOfUser.innerText = String(tokens.length);
-          dailyWield.innerText = (tokens.length * 0.27369863013).toFixed(3);
+    button.onclick = () => {
+      if (button.innerText === 'HQ') {
+        if (!tokenStake.includes(tokenFromContract[index])) {
+          tokenStake.push(tokenFromContract[index]);
         }
-      });
-
-      getTokensFromDb(tokenFromContract).then((response) => {
-        const tokens = response?.data;
-        tokens?.forEach((info: TokensFromDb, i: number) => {
-          nftLayout.classList.remove('is-hidden');
-          const rarityItemContentWrapper = document.createElement('div');
-          const rarityItemContent = document.createElement('div');
-          const rarityItemMainContentWrapper = document.createElement('div');
-          const rarityItemMainContentLayoutLeft = document.createElement('div');
-          const rarityItemMainContentLayoutRight =
-            document.createElement('div');
-          const rarityItemInfoWrapperCollection = document.createElement('div');
-          const rarityItemInfoWrapperRarity = document.createElement('div');
-          const rarityItemInfoWrapperId = document.createElement('div');
-          const rarityItemInfoWrapperRank = document.createElement('div');
-          const earningsItemStatusWrapper = document.createElement('div');
-          const earningsItemStatusButtonHq = document.createElement('div');
-          const earningsItemStatusButtonMission = document.createElement('div');
-          earningsItemStatusButtonHq.classList.add(
-            'earnings_item-status-button'
-          );
-          earningsItemStatusButtonMission.classList.add(
-            'earnings_item-status-button'
-          );
-          earningsItemStatusButtonMission.classList.add('is-selected');
-          earningsItemStatusWrapper.classList.add(
-            'earnings_item-status-wrapper'
-          );
-          rarityItemContentWrapper.classList.add('rarity_item-content-wrapper');
-          rarityItemContent.classList.add('rarity_item-content');
-          rarityItemMainContentWrapper.classList.add(
-            'rarity_item-main-content-wrapper'
-          );
-          rarityItemMainContentLayoutLeft.classList.add(
-            'rarity_item-main-content-layout'
-          );
-          rarityItemMainContentLayoutRight.classList.add(
-            'rarity_item-main-content-layout'
-          );
-          rarityItemInfoWrapperCollection.classList.add(
-            'rarity_item-info-wrapper'
-          );
-          rarityItemInfoWrapperRarity.classList.add('rarity_item-info-wrapper');
-          rarityItemInfoWrapperId.classList.add('rarity_item-info-wrapper');
-          rarityItemInfoWrapperRank.classList.add('rarity_item-info-wrapper');
-          const labelCollection = document.createElement('div');
-          const labelId = document.createElement('div');
-          const labelRarity = document.createElement('div');
-          const labelRank = document.createElement('div');
-          labelCollection.classList.add('rarity_item-label');
-          labelRarity.classList.add('rarity_item-label');
-          labelRank.classList.add('rarity_item-label');
-          labelId.classList.add('rarity_item-label');
-          labelCollection.innerText = 'Collection';
-          labelRarity.innerText = 'Rarity Score';
-          labelRank.innerText = 'Rank';
-          labelId.innerText = 'ID';
-          const infoCollection = document.createElement('div');
-          const infoId = document.createElement('div');
-          const infoRarity = document.createElement('div');
-          const infoRank = document.createElement('div');
-          infoCollection.classList.add('rarity_item-text');
-          infoRarity.classList.add('rarity_item-text');
-          infoRank.classList.add('rarity_item-text');
-          infoId.classList.add('rarity_item-text');
-          infoCollection.innerText = '55Unity';
-          infoRarity.innerText = info.score;
-          infoRank.innerText = info.rank;
-          infoId.innerText = String(tokenFromContract[i]);
-          earningsItemStatusButtonHq.innerText = 'HQ';
-          earningsItemStatusButtonMission.innerText = 'Mission';
-          earningsItemStatusWrapper.appendChild(earningsItemStatusButtonHq);
-          earningsItemStatusWrapper.appendChild(
-            earningsItemStatusButtonMission
-          );
-          rarityItemInfoWrapperCollection.appendChild(labelCollection);
-          rarityItemInfoWrapperCollection.appendChild(infoCollection);
-          rarityItemInfoWrapperRarity.appendChild(labelRarity);
-          rarityItemInfoWrapperRarity.appendChild(infoRarity);
-          rarityItemMainContentLayoutLeft.appendChild(
-            rarityItemInfoWrapperCollection
-          );
-          rarityItemMainContentLayoutLeft.appendChild(
-            rarityItemInfoWrapperRarity
-          );
-          rarityItemInfoWrapperId.appendChild(labelId);
-          rarityItemInfoWrapperId.appendChild(infoId);
-          rarityItemInfoWrapperRank.appendChild(labelRank);
-          rarityItemInfoWrapperRank.appendChild(infoRank);
-          rarityItemMainContentLayoutRight.appendChild(rarityItemInfoWrapperId);
-          rarityItemMainContentLayoutRight.appendChild(
-            rarityItemInfoWrapperRank
-          );
-          rarityItemMainContentWrapper.appendChild(
-            rarityItemMainContentLayoutLeft
-          );
-          rarityItemMainContentWrapper.appendChild(
-            rarityItemMainContentLayoutRight
-          );
-          rarityItemContent.appendChild(rarityItemMainContentWrapper);
-          rarityItemContentWrapper.appendChild(rarityItemContent);
-          rarityItemContentWrapper.appendChild(earningsItemStatusWrapper);
-          const elementImage = document.createElement('img');
-          elementImage.setAttribute('src', info.imageUrl);
-          elementImage.classList.add('rarity_item-image');
-          const newNftCard = document.createElement('div');
-          newNftCard.classList.add('owned-nfts_item-component');
-          newNftCard.appendChild(elementImage);
-          newNftCard.appendChild(rarityItemContentWrapper);
-          nftLayout.appendChild(newNftCard);
-        });
-
-        const buttons = Array.from(
-          document.getElementsByClassName('earnings_item-status-button') as HTMLCollectionOf<HTMLButtonElement>)
-
-        buttons.forEach((button, i) => {
-          let index = Math.floor(i / 2);
-          if (
-            tokenStake.includes(tokenFromContract[index]) &&
-            button.innerText === 'HQ'
-          ) {
-            button.classList.add('is-selected');
-            buttons[i + 1].classList.remove('is-selected');
-          }
-
-          button.onclick = () => {
-            if (button.innerText === 'HQ') {
-              if (!tokenStake.includes(tokenFromContract[index])) {
-                tokenStake.push(tokenFromContract[index]);
-              }
-              button.classList.add('is-selected');
-              buttons[i + 1].classList.remove('is-selected');
-            } else {
-              let filteredtokenStake = tokenStake.filter(
-                (id) => tokenFromContract[index] !== id
-              );
-              tokenStake = filteredtokenStake;
-              button.classList.add('is-selected');
-              buttons[i - 1].classList.remove('is-selected');
-            }
-          };
-        });
-      });
-    });
-};
-
+        selectHQButton(button, buttons, i)
+      } else {
+        selectMissionButton(index, button, buttons, i)
+      }
+    };
+  });
+}
 
 const connectWallet = async function () {
   try {
@@ -334,7 +336,6 @@ const connectWallet = async function () {
     });
     if (accounts.length > 0) {
       await createUser(accounts[0], PROJECT_ID);
-
       await fillInfo(accounts[0]);
 
     }
@@ -343,175 +344,92 @@ const connectWallet = async function () {
   }
 };
 
-const claimToken = async function () {
-  claimButton.classList.add('is-hidden');
-  saveChangesButton.classList.add('is-hidden');
-  loadingState[1].classList.remove('is-hidden');
+const showClaimToken = () => {
+  claimButton.classList.remove('is-hidden');
+  loadingState[1].classList.add('is-hidden');
+  balance += sumToClaim;
+  balanceText.innerText = Number(balance).toFixed(3);
+  claimButton.classList.add('is-disabled');
+  totalClaimable.innerText = '0 $SURVIVE';
+  saveChangesButton.classList.remove('is-hidden');
+}
 
+const claimToken = async function () {
+  setLoading(1)
   try {
     const accounts = await (window as any).ethereum.request({ method: 'eth_accounts' });
     if (accounts.length !== 0) {
-      await contractToken.methods
-        .claim()
-        .send({ from: accounts[0], to: CONTRACT_ADDRESS_TOKEN });
-      claimButton.classList.remove('is-hidden');
-      loadingState[1].classList.add('is-hidden');
-      balance += sumToClaim;
-      balanceText.innerText = Number(balance).toFixed(3);
-      claimButton.classList.add('is-disabled');
-      totalClaimable.innerText = '0 $SURVIVE';
-      saveChangesButton.classList.remove('is-hidden');
+      await claim(accounts[0])
+      showClaimToken()
     }
   } catch (error) {
-    saveChangesButton.classList.remove('is-hidden');
     claimButton.classList.remove('is-hidden');
-    loadingState[1].classList.add('is-hidden');
+    setError(1)
   }
 };
 
 const saveChanges = async function () {
-  saveChangesButton.classList.add('is-hidden');
-  loadingState[0].classList.remove('is-hidden');
+  setLoading(0)
   const accounts = await (window as any).ethereum.request({ method: 'eth_accounts' });
-  console.log('staked balance', stakedBalanceFromUser);
-  console.log('token stake', tokenStake);
-
   if (accounts.length !== 0) {
     if (tokenStake.length !== Number(stakedBalanceFromUser)) {
       if (tokenStake.length === 0) {
         const answer = window.confirm('There are no heroes at the HQ. Are you sure you want to continue?')
         if (answer) {
-          contractToken.methods
-            .stake(tokenStake.length)
-            .send({
-              from: accounts[0],
-              to: CONTRACT_ADDRESS_TOKEN,
-            })
-            .then((response: any) => {
-              setStake(accounts[0], PROJECT_ID, tokenStake)
-                .then((response) => {
-                  getTotalClaimable(accounts[0]);
-
-                  balanceOf(accounts[0]);
-
-                  contractToken.methods
-                    .stakedBalance(accounts[0])
-                    .call()
-                    .then((stakedBalance: number) => {
-                      console.log(stakedBalance);
-                      stakedBalanceFromUser = stakedBalance;
-                      console.log('staked', stakedBalanceFromUser);
-                    });
-
-                  getStake(accounts[0], PROJECT_ID).then((response) => {
-                    if (response) {
-                      const { tokens } = response.data;
-                      tokenStake = tokens;
-                      tokenStake.sort();
-                      totalNftsOfUser.innerText = String(tokens.length);
-                      dailyWield.innerText = (tokens.length * 0.27369863013).toFixed(
-                        3
-                      );
-                      saveChangesButton.classList.remove('is-hidden');
-                      loadingState[0].classList.add('is-hidden');
-                    }
-
-                  });
-                })
-                .catch((error) => {
-                  loadingState[0].classList.add('is-hidden');
-                  saveChangesButton.classList.remove('is-hidden');
-                  console.log(error);
-                });
-            })
-            .catch((error: Error) => {
-              console.log(error);
-              loadingState[0].classList.add('is-hidden');
-              saveChangesButton.classList.remove('is-hidden');
-            });
-        } else {
+          await stake(accounts[0], tokenStake.length)
+          await setStake(accounts[0], PROJECT_ID, tokenStake)
+          await setTotalClaimable(accounts[0]);
+          await setBalanceOf(accounts[0]);
+          await setStakedBalance(accounts[0])
+          await showStakeInformation(accounts[0])
           saveChangesButton.classList.remove('is-hidden');
           loadingState[0].classList.add('is-hidden');
+        } else {
+          setError(0)
         }
       } else {
-        contractToken.methods
-          .stake(tokenStake.length)
-          .send({
-            from: accounts[0],
-            to: CONTRACT_ADDRESS_TOKEN,
-          })
-          .then((response: any) => {
-            setStake(accounts[0], PROJECT_ID, tokenStake)
-              .then((response) => {
-                getTotalClaimable(accounts[0]);
-
-                balanceOf(accounts[0]);
-
-                contractToken.methods
-                  .stakedBalance(accounts[0])
-                  .call()
-                  .then((stakedBalance: number) => {
-                    console.log(stakedBalance);
-                    stakedBalanceFromUser = stakedBalance;
-                    console.log('staked', stakedBalanceFromUser);
-                  });
-
-                getStake(accounts[0], PROJECT_ID).then((response) => {
-                  if (response) {
-                    const { tokens } = response.data;
-                    tokenStake = tokens;
-                    tokenStake.sort();
-                    totalNftsOfUser.innerText = String(tokens.length);
-                    dailyWield.innerText = (tokens.length * 0.27369863013).toFixed(
-                      3
-                    );
-                    saveChangesButton.classList.remove('is-hidden');
-                    loadingState[0].classList.add('is-hidden');
-                  }
-
-                });
-              })
-              .catch((error) => {
-                loadingState[0].classList.add('is-hidden');
-                saveChangesButton.classList.remove('is-hidden');
-                console.log(error);
-              });
-          })
-          .catch((error: Error) => {
-            console.log(error);
-            loadingState[0].classList.add('is-hidden');
-            saveChangesButton.classList.remove('is-hidden');
-          });
+        await stake(accounts[0], tokenStake.length)
+        await setStake(accounts[0], PROJECT_ID, tokenStake)
+        await setTotalClaimable(accounts[0]);
+        await setBalanceOf(accounts[0]);
+        await setStakedBalance(accounts[0])
+        await showStakeInformation(accounts[0])
+        saveChangesButton.classList.remove('is-hidden');
+        loadingState[0].classList.add('is-hidden');
       }
 
     } else {
-      setStake(accounts[0], PROJECT_ID, tokenStake)
-        .then((response) => {
-          getTotalClaimable(accounts[0]);
-
-          balanceOf(accounts[0]);
-
-          getStake(accounts[0], PROJECT_ID).then((response) => {
-            if (response) {
-              const { tokens } = response.data
-              tokenStake = tokens
-              tokenStake.sort();
-              totalNftsOfUser.innerText = String(tokens.length);
-              dailyWield.innerText = (tokens.length * 0.27369863013).toFixed(3);
-              saveChangesButton.classList.remove('is-hidden');
-              loadingState[0].classList.add('is-hidden');
-            }
-
-          });
-        })
-        .catch((error) => {
-          loadingState[0].classList.add('is-hidden');
-          saveChangesButton.classList.remove('is-hidden');
-          console.log(error);
-        });
+      await setStake(accounts[0], PROJECT_ID, tokenStake)
+      await setTotalClaimable(accounts[0]);
+      await setBalanceOf(accounts[0]);
+      await setStakedBalance(accounts[0])
+      await showStakeInformation(accounts[0])
+      saveChangesButton.classList.remove('is-hidden');
+      loadingState[0].classList.add('is-hidden');
     }
   }
 };
+
+const burnToxicPower = async () => {
+  console.log(balanceToxicPower)
+  setLoading(2)
+  try {
+    const accounts = await web3.eth.getAccounts()
+
+    console.log(quantityToxicPowerChosen)
+
+    await burn(accounts[0], quantityToxicPowerChosen)
+
+    await setBalanceOf(accounts[0])
+
+    await setBalanceOfToxicPower(accounts[0])
+
+    setError(2)
+  } catch (err) {
+    console.log(err)
+    setError(2)
+  }
+}
 
 const checkUserIsConnected = async () => {
   try {
@@ -530,9 +448,40 @@ const checkUserIsConnected = async () => {
 
 checkUserIsConnected();
 
+sumButton.forEach((button, i) => button.onclick = () => {
+  if (Number(quantityToxicPowerShown[i].innerText) < Number(balanceToxicPower[i])) {
+    let temp = Number(quantityToxicPowerShown[i].innerText)
+    temp++
+    quantityToxicPowerShown[i].innerText = String(temp)
+    quantityToxicPowerChosen.push(i)
+    quantityToxicPowerChosen.sort()
+    if (quantityToxicPowerChosen.length > 0) {
+      burnButton.classList.remove('is-disabled')
+    }
+  }
+})
+
+minusButton.forEach((button, i) => button.onclick = () => {
+  if (Number(quantityToxicPowerShown[i].innerText) > 0) {
+    let temp = Number(quantityToxicPowerShown[i].innerText)
+    temp--;
+    quantityToxicPowerShown[i].innerText = String(temp)
+    let element = i
+    let index = quantityToxicPowerChosen.indexOf(element)
+    if (index > -1) {
+      quantityToxicPowerChosen.splice(index, 1)
+    }
+    quantityToxicPowerChosen.sort()
+    if (quantityToxicPowerChosen.length === 0) {
+      burnButton.classList.add('is-disabled')
+    }
+  }
+})
+
 saveChangesButton.addEventListener('click', saveChanges);
 claimButton.addEventListener('click', claimToken);
 connectButton.addEventListener('click', connectWallet);
+burnButton.addEventListener('click', burnToxicPower)
 
 const hasMetamask = checkEthereumInstalled()
 if (!hasMetamask) {
@@ -542,7 +491,6 @@ if (!hasMetamask) {
   connectButton.classList.add('is-hidden');
   balanceWrapper.classList.add('is-hidden')
 }
-
 
 (window as any).ethereum.on('chainChanged', (chainId: string) => handleChainChanged(chainId, connectedTo, connectButton));
 

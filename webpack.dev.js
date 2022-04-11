@@ -19,13 +19,13 @@ module.exports = merge(common, {
         new webpack.DefinePlugin({
             'process.env': {
                 CHAIN_ID: JSON.stringify('0x4'),
-                CONTRACT_ADDRESS_TOKEN: JSON.stringify('0x14A0a083F3B9DE2B8B2FffbC6EE04F2AA443f7b1'),
+                CONTRACT_ADDRESS_TOKEN: JSON.stringify('0x9F3C5fADB522A45951A3598B72f86a93d897dCA2'),
                 CONTRACT_ADDRESS_55: JSON.stringify("0x7f8eEAF32FBaDf0D7CD1a5D4cd09e97F51647149"),
                 PROJECT_ID: JSON.stringify('61f073affc34b52c4ac0edf8'),
                 SERVER: JSON.stringify('http://localhost:3001'),
                 SERVER_SEAMORE: JSON.stringify('https://seamore.55unity.com'),
                 AUTHENTICATION: JSON.stringify('a9a5d580243b9ee0ab8377695b573e3aa8877803ac2596067d4b8e4ac8254266'),
-                CONTRACT_ADDRESS_TOXIC_POWER: JSON.stringify('0xaf5f821e1ea6c8463cb7c575c8893a8d93439d94')
+                CONTRACT_ADDRESS_TOXIC_POWER: JSON.stringify('0x4AFf043720f7aE277f4Ab03a5aB27c311dd789A8')
             }
         })
     ]
