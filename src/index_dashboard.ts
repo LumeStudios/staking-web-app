@@ -364,6 +364,7 @@ const claimToken = async function () {
     }
   } catch (error) {
     claimButton.classList.remove('is-hidden');
+    burnButton.classList.remove('is-hidden')
     setError(1)
   }
 };
@@ -383,6 +384,8 @@ const saveChanges = async function () {
           await setStakedBalance(accounts[0])
           await showStakeInformation(accounts[0])
           saveChangesButton.classList.remove('is-hidden');
+          claimButton.classList.remove('is-hidden');
+          burnButton.classList.remove('is-hidden')
           loadingState[0].classList.add('is-hidden');
         } else {
           setError(0)
@@ -394,6 +397,8 @@ const saveChanges = async function () {
         await setBalanceOf(accounts[0]);
         await setStakedBalance(accounts[0])
         await showStakeInformation(accounts[0])
+        claimButton.classList.remove('is-hidden');
+        burnButton.classList.remove('is-hidden')
         saveChangesButton.classList.remove('is-hidden');
         loadingState[0].classList.add('is-hidden');
       }
@@ -404,6 +409,8 @@ const saveChanges = async function () {
       await setBalanceOf(accounts[0]);
       await setStakedBalance(accounts[0])
       await showStakeInformation(accounts[0])
+      claimButton.classList.remove('is-hidden');
+      burnButton.classList.remove('is-hidden')
       saveChangesButton.classList.remove('is-hidden');
       loadingState[0].classList.add('is-hidden');
     }
@@ -424,6 +431,8 @@ const burnToxicPower = async () => {
 
     await setBalanceOfToxicPower(accounts[0])
 
+    claimButton.classList.remove('is-hidden');
+    burnButton.classList.remove('is-hidden')
     setError(2)
   } catch (err) {
     console.log(err)
