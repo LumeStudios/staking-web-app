@@ -1,6 +1,5 @@
 import { default as Web3 } from 'web3'
 import { Address } from "../types/types";
-import { Contract } from 'web3-eth-contract'
 import { AbiItem } from 'web3-utils'
 import ABI from '../contracts/ABI.json'
 import ABIunity from '../contracts/ABI55Unity.json'
