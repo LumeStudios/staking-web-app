@@ -2,7 +2,7 @@ const path = require('path');
 const webpack = require('webpack')
 
 module.exports = {
-    entry: './src/index_dashboard.ts',
+    entry: './src/index.ts',
     module: {
         rules: [
             {
@@ -38,7 +38,7 @@ module.exports = {
         },
     },
     output: {
-        filename: 'new_bundlev1.2.2.js',
+        filename: 'new_bundlev1.2.1.js',
         path: path.resolve(__dirname, 'dist')
     }
 };
