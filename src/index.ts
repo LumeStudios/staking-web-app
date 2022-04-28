@@ -2,10 +2,12 @@ import { default as Web3 } from "web3"
 import { getStake } from "./api/get-stake"
 import { setStake } from "./api/set-stake"
 import { getTokensFromDb } from "./api/get-tokens-from-db"
-import { createUser } from "./api/create-user"
-import { Address, TokenFromContract, Tokens, TokensFromDb } from "./types/types"
+import { createUser } from "./api/login"
+import { Address, ProjectId, TokenFromContract, Tokens, TokensFromDb } from "./types/types"
 import { checkEthereumInstalled, handleAccountChanged, handleChainChanged } from "./utils/events"
 import { burn, claim, getBalanceOf, getLastUpdate, getStakedBalance, getTotalClaimable, getToxicPowerBalanceFromContract, getWalletOfOwner, stake } from "./utils/contract-utils"
+import { getChapterReward } from "./api/get-reward"
+import Auth from "./utils/token"
 
 const web3 = new Web3(Web3.givenProvider);
 
@@ -24,6 +26,7 @@ const totalNftsOfUser = D.querySelector('.total-nfts') as HTMLDivElement;
 const totalNftsOfUserSpan = D.querySelector(
   '.rarity_low-opacity-text-span'
 ) as HTMLSpanElement;
+const chapterReward = D.querySelector('.earnings_item-game-text') as HTMLDivElement;
 const nftLayout = D.querySelector('.owned-nfts_list-layout') as HTMLDivElement;
 const saveChangesButton = D.querySelector('.earnings_select-button') as HTMLButtonElement;
 const dailyWield = D.querySelector('.daily-wield') as HTMLDivElement;
@@ -73,6 +76,19 @@ const setConnectedWallet = (address: Address) => {
   navTopBarWrapper.classList.add('is-hidden');
 }
 
+const loginUser = async (address: Address, projectId: ProjectId) => {
+  try {
+    const response = await createUser(address, projectId)
+    const token = response?.data.token
+    if (token) {
+      Auth.user.setAccessToken(token)
+      Auth.user.setAuthorizationHeader(token)
+    }
+  } catch (err) {
+    console.log(err)
+  }
+}
+
 const setTotalClaimable = async (address: Address): Promise<void> => {
   const total = await getTotalClaimable(address)
   if (Number(total) !== 0) claimButton.classList.remove('is-disabled')
@@ -106,8 +122,6 @@ const setBalanceOfToxicPower = async (address: Address): Promise<void> => {
   try {
     balanceToxicPower = await getToxicPowerBalanceFromContract(address)
 
-    console.log(balanceToxicPower)
-
     balanceToxicPower.forEach((quantity, i) => {
       if (Number(quantity) > 0) {
         showToxicPowerInfo(i, quantity)
@@ -134,7 +148,6 @@ const setLastUpdate = async (address: Address) => {
 const setStakedBalance = async (address: Address) => {
   const stakedBalance = await getStakedBalance(address)
   stakedBalanceFromUser = stakedBalance;
-  console.log(stakedBalance)
 }
 
 const setWalletOfOwner = async (address: Address) => {
@@ -156,6 +169,13 @@ const showStakeInformation = async (address: Address) => {
     tokenStake.sort();
     totalNftsOfUser.innerText = String(tokens.length);
     dailyWield.innerText = (tokens.length * 0.27369863013).toFixed(3);
+  }
+}
+
+const showChapterReward = async (address: Address) => {
+  const response = await getChapterReward(address)
+  if (response) {
+    chapterReward.innerText = String(response.data.storyRewards)
   }
 }
 
@@ -296,8 +316,9 @@ const selectMissionButton = (index: number, button: HTMLButtonElement, buttons: 
 
 const fillInfo = async (address: Address) => {
   setConnectedWallet(address)
-  await setBalanceOf(address);
-  await setTotalClaimable(address);
+  await showChapterReward(address)
+  await setBalanceOf(address)
+  await setTotalClaimable(address)
   await setBalanceOfToxicPower(address)
   await setLastUpdate(address)
   await setStakedBalance(address)
@@ -335,7 +356,7 @@ const connectWallet = async function () {
       method: 'eth_requestAccounts',
     });
     if (accounts.length > 0) {
-      await createUser(accounts[0], PROJECT_ID);
+      await loginUser(accounts[0], PROJECT_ID)
       await fillInfo(accounts[0]);
 
     }
@@ -440,12 +461,25 @@ const burnToxicPower = async () => {
   }
 }
 
+const checkUserToken = async () => {
+  try {
+    const token = Auth.user.getAccessToken()
+    if (token) {
+      Auth.user.setAuthorizationHeader(token)
+    } else {
+      Auth.user.logout()
+    }
+  } catch (err) {
+    console.log(err)
+  }
+}
+
 const checkUserIsConnected = async () => {
   try {
     const accounts = await web3.eth.getAccounts();
 
     if (accounts.length > 0) {
-      await createUser(accounts[0], PROJECT_ID);
+      await checkUserToken()
 
       await fillInfo(accounts[0]);
 

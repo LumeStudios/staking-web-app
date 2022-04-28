@@ -1,4 +1,5 @@
 import { Address } from "../types/types";
+import Auth from "./token";
 
 const CHAIN_ID = process.env.CHAIN_ID as string
 
@@ -14,7 +15,8 @@ export function handleChainChanged(chainIdUsed: string, connectedTo: HTMLDivElem
 
 
 export function handleAccountChanged(_account: Address) {
-    if (_account !== '') {
+    if (_account.length === 0) {
+        Auth.user.logout()
         window.location.reload();
     }
 }
