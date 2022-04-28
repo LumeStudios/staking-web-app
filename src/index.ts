@@ -461,13 +461,14 @@ const burnToxicPower = async () => {
   }
 }
 
-const checkUserToken = async () => {
+const checkUserToken = async (address: Address, projectId = PROJECT_ID) => {
   try {
     const token = Auth.user.getAccessToken()
     if (token) {
       Auth.user.setAuthorizationHeader(token)
     } else {
       Auth.user.logout()
+      await loginUser(address, projectId)
     }
   } catch (err) {
     console.log(err)
@@ -479,7 +480,7 @@ const checkUserIsConnected = async () => {
     const accounts = await web3.eth.getAccounts();
 
     if (accounts.length > 0) {
-      await checkUserToken()
+      await checkUserToken(accounts[0])
 
       await fillInfo(accounts[0]);
 
