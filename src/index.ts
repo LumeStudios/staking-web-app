@@ -5,9 +5,13 @@ import { getTokensFromDb } from "./api/get-tokens-from-db"
 import { createUser } from "./api/login"
 import { Address, ProjectId, TokenFromContract, Tokens, TokensFromDb } from "./types/types"
 import { checkEthereumInstalled, handleAccountChanged, handleChainChanged } from "./utils/events"
-import { burn, claim, getBalanceOf, getLastUpdate, getStakedBalance, getTotalClaimable, getToxicPowerBalanceFromContract, getWalletOfOwner, stake } from "./utils/contract-utils"
+import { burn, claim, claimRewardFromContract, getBalanceOf, getLastUpdate, getStakedBalance, getTotalClaimable, getToxicPowerBalanceFromContract, getWalletOfOwner, stake } from "./utils/contract-utils"
 import { getChapterReward } from "./api/get-reward"
 import Auth from "./utils/token"
+import { createClaim } from "./api/create-claim"
+import { confirmClaim } from "./api/confirm-claim"
+import { callContractResponse } from "./api/contract-response"
+import { cancelClaim } from "./api/cancel-claim"
 
 const web3 = new Web3(Web3.givenProvider);
 
@@ -41,6 +45,9 @@ const burnButton = D.querySelector('.burn-button') as HTMLButtonElement
 const quantityWrapper = Array.from(D.getElementsByClassName('quantity-wrapper') as HTMLCollectionOf<HTMLDivElement>)
 const minusButton = Array.from(D.getElementsByClassName('minus-button') as HTMLCollectionOf<HTMLButtonElement>)
 const sumButton = Array.from(D.getElementsByClassName('sum-button') as HTMLCollectionOf<HTMLButtonElement>)
+const rewardClaimButton = D.querySelector('.game-claim__button') as HTMLButtonElement
+
+console.log(loadingState)
 
 let tokenStake: Tokens = [];
 let tokenFromContract: Tokens = [];
@@ -49,10 +56,12 @@ let balance = 0;
 let sumToClaim = 0;
 let balanceToxicPower: Array<string> = []
 let quantityToxicPowerChosen: Array<number> = [];
+let sumRewardToClaim: number = 0;
 
 const setError = (i: number) => {
   burnButton.classList.remove('is-hidden')
   claimButton.classList.remove('is-hidden')
+  rewardClaimButton.classList.remove('is-hidden')
   saveChangesButton.classList.remove('is-hidden');
   loadingState[i].classList.add('is-hidden');
 }
@@ -60,6 +69,7 @@ const setError = (i: number) => {
 const setLoading = (i: number) => {
   burnButton.classList.add('is-hidden')
   claimButton.classList.add('is-hidden');
+  rewardClaimButton.classList.add('is-hidden')
   saveChangesButton.classList.add('is-hidden');
   loadingState[i].classList.remove('is-hidden')
 }
@@ -175,7 +185,11 @@ const showStakeInformation = async (address: Address) => {
 const showChapterReward = async (address: Address) => {
   const response = await getChapterReward(address)
   if (response) {
-    chapterReward.innerText = String(response.data.storyRewards)
+    chapterReward.innerText = String(response.data.storyRewards.toFixed(3)) + " $SURVIVE"
+    if (response.data.storyRewards > 0) {
+      rewardClaimButton.classList.remove('is-disabled')
+      sumRewardToClaim = response.data.storyRewards
+    }
   }
 }
 
@@ -316,6 +330,7 @@ const selectMissionButton = (index: number, button: HTMLButtonElement, buttons: 
 
 const fillInfo = async (address: Address) => {
   setConnectedWallet(address)
+  await confirmClaim(address)
   await showChapterReward(address)
   await setBalanceOf(address)
   await setTotalClaimable(address)
@@ -390,6 +405,32 @@ const claimToken = async function () {
   }
 };
 
+const claimReward = async () => {
+  setLoading(2)
+  try {
+    const accounts = await (window as any).ethereum.request({ method: 'eth_accounts' });
+    const storyReward = chapterReward.innerText.split(' ')[0]
+    console.log(typeof (Number(storyReward)).toFixed(3))
+    const response = await createClaim(accounts[0], sumRewardToClaim, +balance.toFixed(0))
+    if (response) {
+      const { id, signature } = response.data
+      await claimRewardFromContract(accounts[0], signature.v, signature.r, signature.s, id, sumRewardToClaim)
+      await callContractResponse(accounts[0])
+      await setBalanceOf(accounts[0])
+      loadingState[2].classList.add('is-hidden')
+      rewardClaimButton.classList.remove('is-hidden')
+      claimButton.classList.remove('is-hidden')
+      saveChangesButton.classList.remove('is-hidden')
+      chapterReward.innerText = '0 $SURVIVE'
+    }
+  } catch (err) {
+    setError(2)
+    console.log(err)
+    const accounts = await (window as any).ethereum.request({ method: 'eth_accounts' });
+    await cancelClaim(accounts[0])
+  }
+}
+
 const saveChanges = async function () {
   setLoading(0)
   const accounts = await (window as any).ethereum.request({ method: 'eth_accounts' });
@@ -443,8 +484,6 @@ const burnToxicPower = async () => {
   setLoading(2)
   try {
     const accounts = await web3.eth.getAccounts()
-
-    console.log(quantityToxicPowerChosen)
 
     await burn(accounts[0], quantityToxicPowerChosen)
 
@@ -522,6 +561,7 @@ minusButton.forEach((button, i) => button.onclick = () => {
   }
 })
 
+rewardClaimButton.addEventListener('click', claimReward)
 saveChangesButton.addEventListener('click', saveChanges);
 claimButton.addEventListener('click', claimToken);
 connectButton.addEventListener('click', connectWallet);
