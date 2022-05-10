@@ -3,7 +3,7 @@ import { Address, ApiResult, ProjectId } from "../types/types";
 
 export const cancelClaim = async (address: Address): ApiResult<void> => {
     try {
-        return await axios.delete(
+        return await axios.put(
             process.env.SERVER + `/claim/reject/${address}`,
         );
     } catch (error) {
