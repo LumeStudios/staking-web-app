@@ -187,7 +187,7 @@ const showChapterReward = async (address: Address) => {
   if (response) {
     chapterReward.innerText = String(response.data.storyRewards.toFixed(3)) + " $SURVIVE"
     if (response.data.storyRewards > 0) {
-      // rewardClaimButton.classList.remove('is-disabled')
+      rewardClaimButton.classList.remove('is-disabled')
       sumRewardToClaim = response.data.storyRewards
     }
   }
@@ -409,12 +409,10 @@ const claimReward = async () => {
   setLoading(2)
   try {
     const accounts = await (window as any).ethereum.request({ method: 'eth_accounts' });
-    const storyReward = chapterReward.innerText.split(' ')[0]
-    console.log(typeof (Number(storyReward)).toFixed(3))
-    const response = await createClaim(accounts[0], +sumRewardToClaim.toFixed(0), +balance.toFixed(0))
+    const response = await createClaim(accounts[0], +sumRewardToClaim, +balance)
     if (response) {
       const { id, signature } = response.data
-      await claimRewardFromContract(accounts[0], signature.v, signature.r, signature.s, id, +sumRewardToClaim.toFixed(0))
+      await claimRewardFromContract(accounts[0], signature.v, signature.r, signature.s, id, Math.ceil(sumRewardToClaim))
       await callContractResponse(accounts[0])
       await setBalanceOf(accounts[0])
       loadingState[2].classList.add('is-hidden')
