@@ -264,8 +264,8 @@ const showTokens = async () => {
       infoRarity.innerText = info.score;
       infoRank.innerText = info.rank;
       infoId.innerText = String(tokenFromContract[i]);
-      earningsItemStatusButtonHq.innerText = 'HQ';
-      earningsItemStatusButtonMission.innerText = 'Mission';
+      earningsItemStatusButtonHq.innerText = 'Mission';
+      earningsItemStatusButtonMission.innerText = 'HQ';
       earningsItemStatusWrapper.appendChild(earningsItemStatusButtonHq);
       earningsItemStatusWrapper.appendChild(
         earningsItemStatusButtonMission
@@ -309,17 +309,17 @@ const showTokens = async () => {
   }
 }
 
-const checkHQButton = (i: number, button: HTMLButtonElement) => {
+const checkMissionButton = (i: number, button: HTMLButtonElement) => {
   return tokenStake.includes(tokenFromContract[i]) &&
-    button.innerText === 'HQ'
+    button.innerText === 'Mission'
 }
 
-const selectHQButton = (button: HTMLButtonElement, buttons: HTMLButtonElement[], i: number) => {
+const selectMissionButton = (button: HTMLButtonElement, buttons: HTMLButtonElement[], i: number) => {
   button.classList.add('is-selected');
   buttons[i + 1].classList.remove('is-selected');
 }
 
-const selectMissionButton = (index: number, button: HTMLButtonElement, buttons: HTMLButtonElement[], i: number) => {
+const selectHQButton = (index: number, button: HTMLButtonElement, buttons: HTMLButtonElement[], i: number) => {
   let filteredtokenStake = tokenStake.filter(
     (id) => tokenFromContract[index] !== id
   );
@@ -347,19 +347,19 @@ const fillInfo = async (address: Address) => {
   buttons.forEach((button, i) => {
     let index = Math.floor(i / 2);
     if (
-      checkHQButton(index, button)
+      checkMissionButton(index, button)
     ) {
-      selectHQButton(button, buttons, i)
+      selectMissionButton(button, buttons, i)
     }
 
     button.onclick = () => {
-      if (button.innerText === 'HQ') {
+      if (button.innerText === 'Mission') {
         if (!tokenStake.includes(tokenFromContract[index])) {
           tokenStake.push(tokenFromContract[index]);
         }
-        selectHQButton(button, buttons, i)
+        selectMissionButton(button, buttons, i)
       } else {
-        selectMissionButton(index, button, buttons, i)
+        selectHQButton(index, button, buttons, i)
       }
     };
   });
@@ -435,7 +435,7 @@ const saveChanges = async function () {
   if (accounts.length !== 0) {
     if (tokenStake.length !== Number(stakedBalanceFromUser)) {
       if (tokenStake.length === 0) {
-        const answer = window.confirm('There are no heroes at the HQ. Are you sure you want to continue?')
+        const answer = window.confirm('There are no heroes on mission. Are you sure you want to continue?')
         if (answer) {
           await stake(accounts[0], tokenStake.length)
           await setStake(accounts[0], PROJECT_ID, tokenStake)
