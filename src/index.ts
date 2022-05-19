@@ -187,7 +187,7 @@ const showChapterReward = async (address: Address) => {
   if (response) {
     chapterReward.innerText = String(response.data.storyRewards.toFixed(3)) + " $SURVIVE"
     if (response.data.storyRewards > 0) {
-      rewardClaimButton.classList.remove('is-disabled')
+      // rewardClaimButton.classList.remove('is-disabled')
       sumRewardToClaim = response.data.storyRewards
     }
   }
