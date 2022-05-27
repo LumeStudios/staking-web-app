@@ -330,7 +330,7 @@ const selectHQButton = (index: number, button: HTMLButtonElement, buttons: HTMLB
 
 const fillInfo = async (address: Address) => {
   setConnectedWallet(address)
-  await confirmClaim(address)
+  await confirmClaim()
   await showChapterReward(address)
   await setBalanceOf(address)
   await setTotalClaimable(address)
@@ -413,7 +413,7 @@ const claimReward = async () => {
     if (response) {
       const { id, signature } = response.data
       await claimRewardFromContract(accounts[0], signature.v, signature.r, signature.s, id, Math.ceil(sumRewardToClaim))
-      await callContractResponse(accounts[0])
+      await callContractResponse()
       await setBalanceOf(accounts[0])
       loadingState[2].classList.add('is-hidden')
       rewardClaimButton.classList.remove('is-hidden')
@@ -425,7 +425,7 @@ const claimReward = async () => {
     setError(2)
     console.log(err)
     const accounts = await (window as any).ethereum.request({ method: 'eth_accounts' });
-    await cancelClaim(accounts[0])
+    await cancelClaim()
   }
 }
 
