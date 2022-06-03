@@ -38,7 +38,7 @@ module.exports = {
         },
     },
     output: {
-        filename: 'new_bundlev1.2.12.js',
+        filename: 'new_bundlev1.2.13.js',
         path: path.resolve(__dirname, 'dist')
     }
 };
