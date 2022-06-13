@@ -666,10 +666,13 @@ const convertToken = async () => {
       if (response) {
         balance = response.data.balance
         balanceText.innerText = response.data.balance.toString()
-        chapterReward.innerText = response.data.storyRewards.toString()
+        chapterReward.innerText = response.data.storyRewards.toFixed(3)
       }
       loadingState[3].classList.add('is-hidden')
       convertButton.classList.remove('is-hidden')
+      saveChangesButton.classList.remove('is-hidden')
+      claimButton.classList.remove("is-hidden");
+      rewardClaimButton.classList.remove("is-hidden");
     }
   } catch (error) {
     console.log(error)
