@@ -665,6 +665,7 @@ const convertToken = async () => {
       const response = await verifyBalance();
       if (response) {
         balance = response.data.balance
+        balanceText.innerText = response.data.balance.toString()
         chapterReward.innerText = response.data.storyRewards.toString()
       }
       loadingState[3].classList.add('is-hidden')
