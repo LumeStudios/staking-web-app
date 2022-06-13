@@ -664,7 +664,6 @@ const convertToken = async () => {
       await convertBalance(accounts[0], userBalance);
       const response = await verifyBalance();
       if (response) {
-        balance = response.data.balance
         balanceText.innerText = response.data.balance.toString()
         chapterReward.innerText = response.data.storyRewards.toFixed(3)
       }
