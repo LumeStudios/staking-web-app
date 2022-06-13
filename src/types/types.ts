@@ -36,3 +36,11 @@ export type ToxicBalance = {
     balanceTwo: number,
     balanceThree: number
 }
+
+
+export type BalanceCheck = {
+    address: string,
+    balance: number,
+    storyRewards: number,
+    stakedTokens: Array<number>
+}

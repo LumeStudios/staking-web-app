@@ -134,3 +134,15 @@ export const claimRewardFromContract = async (address: Address, v: string, r: st
     }
 }
 
+export const convertBalance = async (address: Address, balance: string) => {
+    try {
+        console.log('balance', balance)
+        return contractToken.methods.burn(balance).send({
+            from: address,
+            to: CONTRACT_ADDRESS_TOKEN
+        })
+    } catch (error) {
+        console.log(error)
+    }
+}
+
